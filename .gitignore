@@ -7,5 +7,3 @@ QuickAccess.app/Contents/MacOS/QuickAccess
 # macOS system files
 .DS_Store
 
-# Old project files
-Tiny-URL/
