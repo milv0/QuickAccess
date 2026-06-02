@@ -2,9 +2,9 @@
 //  QuickAccess.swift
 //  QuickAccess - Menubar app for quick website launching
 //
-//  Created by Mingyu Park
-//  Contact: uqwe00@gmail.com / brianmg@naver.com
-//  © 2026 Mingyu Park. All rights reserved.
+//  Created by Mingyu
+//  Contact: uqwe00@gmail.com
+//  © 2026 Mingyu. All rights reserved.
 //
 
 import Cocoa
@@ -984,7 +984,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showAbout() {
         let alert = NSAlert()
         alert.messageText = "QuickAccess"
-        alert.informativeText = "Version \(Defaults.appVersion)\n\nMade by Mingyu Park\nuqwe00@gmail.com\nbrianmg@naver.com"
+        alert.informativeText = "Version \(Defaults.appVersion)\n\nMade by Mingyu\nuqwe00@gmail.com"
         alert.alertStyle = .informational
         alert.addButton(withTitle: "OK")
         NSApp.setActivationPolicy(.regular)

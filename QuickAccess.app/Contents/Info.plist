@@ -15,7 +15,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.0.0</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>© 2026 Mingyu Park (uqwe00@gmail.com / brianmg@naver.com)</string>
+	<string>© 2026 Mingyu (uqwe00@gmail.com)</string>
 	<key>LSUIElement</key>
 	<true/>
 </dict>

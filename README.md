@@ -69,9 +69,8 @@ open QuickAccess.app
 
 ## 만든이
 
-**Mingyu Park**
+**Mingyu**
 - uqwe00@gmail.com
-- brianmg@naver.com
 
 ## License
 
