@@ -12,14 +12,24 @@ echo "🔨 Building..."
 swiftc QuickAccess.swift -o QuickAccess.app/Contents/MacOS/QuickAccess -framework Cocoa
 
 echo "📦 Creating DMG..."
-hdiutil create -volname QuickAccess -srcfolder QuickAccess.app -ov -format UDZO QuickAccess.dmg
+rm -rf /tmp/QuickAccess-dmg
+mkdir -p /tmp/QuickAccess-dmg
+cp -R QuickAccess.app /tmp/QuickAccess-dmg/
+ln -s /Applications /tmp/QuickAccess-dmg/Applications
+hdiutil create -volname QuickAccess -srcfolder /tmp/QuickAccess-dmg -ov -format UDZO QuickAccess.dmg
+rm -rf /tmp/QuickAccess-dmg
 
 echo "📝 Updating version in code..."
 sed -i '' "s/static let appVersion = \".*\"/static let appVersion = \"$VERSION\"/" QuickAccess.swift
 
 echo "🔨 Rebuilding with new version..."
 swiftc QuickAccess.swift -o QuickAccess.app/Contents/MacOS/QuickAccess -framework Cocoa
-hdiutil create -volname QuickAccess -srcfolder QuickAccess.app -ov -format UDZO QuickAccess.dmg
+rm -rf /tmp/QuickAccess-dmg
+mkdir -p /tmp/QuickAccess-dmg
+cp -R QuickAccess.app /tmp/QuickAccess-dmg/
+ln -s /Applications /tmp/QuickAccess-dmg/Applications
+hdiutil create -volname QuickAccess -srcfolder /tmp/QuickAccess-dmg -ov -format UDZO QuickAccess.dmg
+rm -rf /tmp/QuickAccess-dmg
 
 echo "🚀 Committing and pushing..."
 git add QuickAccess.swift
