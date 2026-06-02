@@ -140,10 +140,11 @@ class MinimapView: NSView {
         // Scale site rect to minimap
         let scaleX = b.width / screenW
         let scaleY = b.height / screenH
-        let rect = NSRect(x: b.origin.x + siteX * scaleX,
-                          y: b.origin.y + (screenH - siteY - siteH) * scaleY,
-                          width: siteW * scaleX,
-                          height: siteH * scaleY)
+        let rawRect = NSRect(x: b.origin.x + siteX * scaleX,
+                             y: b.origin.y + (screenH - siteY - siteH) * scaleY,
+                             width: siteW * scaleX,
+                             height: siteH * scaleY)
+        let rect = rawRect.intersection(b)
         NSColor(calibratedRed: 139/255, green: 92/255, blue: 246/255, alpha: 0.5).setFill()
         NSBezierPath(rect: rect).fill()
         NSColor(calibratedRed: 139/255, green: 92/255, blue: 246/255, alpha: 1).setStroke()
@@ -218,6 +219,18 @@ class SettingsWindowController: NSObject, NSTableViewDataSource, NSTableViewDele
         window.delegate = self
 
         guard let content = window.contentView else { return }
+        content.wantsLayer = true
+        let gradient = CAGradientLayer()
+        gradient.frame = content.bounds
+        gradient.colors = [
+            NSColor(calibratedRed: 139/255, green: 92/255, blue: 246/255, alpha: 0.06).cgColor,
+            NSColor(calibratedRed: 139/255, green: 92/255, blue: 246/255, alpha: 0.0).cgColor
+        ]
+        gradient.startPoint = CGPoint(x: 0.5, y: 1)
+        gradient.endPoint = CGPoint(x: 0.5, y: 0)
+        gradient.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+        content.layer?.addSublayer(gradient)
+
         let margin: CGFloat = 16
         let tableWidth: CGFloat = 180
         let bottomBarHeight: CGFloat = 50
@@ -695,9 +708,48 @@ class SettingsWindowController: NSObject, NSTableViewDataSource, NSTableViewDele
         heightField.stringValue = "\(s.height)"
         xField.stringValue = "\(s.x)"
         yField.stringValue = "\(s.y)"
-        layoutPopup.selectItem(at: 0)
-        sizePopup.selectItem(at: 0)
-        updateLayoutButtonSelection(-1)
+
+        // Auto-detect layout preset
+        if let screen = NSScreen.main {
+            let screenW = Int(screen.frame.width)
+            let screenH = Int(screen.frame.height)
+            let layoutPresets: [(Int, Int, Int, Int)] = [
+                (s.width, s.height, (screenW - s.width) / 2, (screenH - s.height) / 2), // Center
+                (screenW/2, screenH, 0, 0),           // Left Half
+                (screenW/2, screenH, screenW/2, 0),   // Right Half
+                (screenW, screenH/2, 0, 0),           // Top Half
+                (screenW, screenH/2, 0, screenH/2),   // Bottom Half
+                (screenW/2, screenH/2, 0, 0),         // Top-Left
+                (screenW/2, screenH/2, screenW/2, 0), // Top-Right
+                (screenW/2, screenH/2, 0, screenH/2), // Bottom-Left
+                (screenW/2, screenH/2, screenW/2, screenH/2), // Bottom-Right
+            ]
+            var detectedLayout = 0
+            // Check non-center presets (index 1-8)
+            for (i, p) in layoutPresets.enumerated() where i > 0 {
+                if s.width == p.0 && s.height == p.1 && s.x == p.2 && s.y == p.3 {
+                    detectedLayout = i + 1; break
+                }
+            }
+            // Check center (index 0) — x/y match centered values
+            if detectedLayout == 0 && s.x == (screenW - s.width) / 2 && s.y == (screenH - s.height) / 2 {
+                detectedLayout = 1
+            }
+            layoutPopup.selectItem(at: detectedLayout)
+            updateLayoutButtonSelection(detectedLayout - 1)
+        } else {
+            layoutPopup.selectItem(at: 0)
+            updateLayoutButtonSelection(-1)
+        }
+
+        // Auto-detect size preset
+        let sizePresets: [(Int, Int)] = [(400,200), (600,300), (800,500), (1000,700), (1200,800), (1000,400), (500,800), (1400,900)]
+        var detectedSize = 0
+        for (i, sz) in sizePresets.enumerated() {
+            if s.width == sz.0 && s.height == sz.1 { detectedSize = i + 1; break }
+        }
+        sizePopup.selectItem(at: detectedSize)
+
         updateSizeFieldsEnabled()
         updatePlaceholders()
         updateMinimap()
@@ -1095,7 +1147,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
             self.buildMenu()
-            NSApp.setActivationPolicy(runInBackground ? .accessory : .regular)
         }
     }
 
