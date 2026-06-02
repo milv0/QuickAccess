@@ -762,8 +762,32 @@ class SettingsWindowController: NSObject, NSTableViewDataSource, NSTableViewDele
         onReload?()
     }
 
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        if hasUnsavedChanges() {
+            let alert = NSAlert()
+            alert.messageText = "저장하지 않은 변경사항이 있습니다."
+            alert.informativeText = "창을 닫으면 변경사항이 사라집니다."
+            alert.addButton(withTitle: "닫기")
+            alert.addButton(withTitle: "취소")
+            return alert.runModal() == .alertFirstButtonReturn
+        }
+        return true
+    }
+
     func windowWillClose(_ notification: Notification) {
         NSApp.setActivationPolicy(runInBackground ? .accessory : .regular)
+    }
+
+    private func hasUnsavedChanges() -> Bool {
+        let row = tableView.selectedRow
+        guard row >= 0 && row < sites.count else { return false }
+        let s = sites[row]
+        return nameField.stringValue != s.name ||
+               urlField.stringValue != s.url ||
+               widthField.stringValue != "\(s.width)" ||
+               heightField.stringValue != "\(s.height)" ||
+               xField.stringValue != "\(s.x)" ||
+               yField.stringValue != "\(s.y)"
     }
 }
 
@@ -880,8 +904,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // Fix #1: Escape double quotes to prevent AppleScript injection
-        let domain = (URL(string: site.url)?.host ?? site.url).replacingOccurrences(of: "\"", with: "\\\"")
+        // Fix #1: Escape all AppleScript-special characters to prevent injection
+        let rawDomain = URL(string: site.url)?.host ?? site.url
+        let domain = rawDomain
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
 
         // Validate bounds are numeric
         let bx = site.x
@@ -919,7 +946,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let openTask = Process()
         openTask.executableURL = URL(fileURLWithPath: "/usr/bin/open")
         openTask.arguments = ["-na", "Google Chrome", "--args", "--app=\(site.url)"]
-        try? openTask.run()
+        do {
+            try openTask.run()
+        } catch {
+            DispatchQueue.main.async {
+                let alert = NSAlert()
+                alert.messageText = "Chrome을 실행할 수 없습니다."
+                alert.informativeText = error.localizedDescription
+                alert.alertStyle = .critical
+                alert.runModal()
+            }
+            return
+        }
 
         // Reposition the window via osascript after a short delay
         DispatchQueue.global().asyncAfter(deadline: .now() + delay) {
@@ -938,7 +976,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             encoder.outputFormatting = .prettyPrinted
             if let data = try? encoder.encode(self.config) {
                 do {
-                    try data.write(to: URL(fileURLWithPath: self.configPath))
+                    try data.write(to: URL(fileURLWithPath: self.configPath), options: .atomic)
                 } catch {
                     let alert = NSAlert()
                     alert.messageText = "설정 저장에 실패했습니다."
