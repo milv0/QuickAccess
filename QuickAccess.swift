@@ -192,6 +192,7 @@ class SettingsWindowController: NSObject, NSTableViewDataSource, NSTableViewDele
         }
         tableView.reloadData()
         clearFields()
+        previousSelectedRow = -1
         backgroundCheckbox?.state = runInBackground ? .on : .off
 
         NSApp.setActivationPolicy(.regular)
@@ -425,6 +426,16 @@ class SettingsWindowController: NSObject, NSTableViewDataSource, NSTableViewDele
         boxContent.addSubview(yMaxLabel)
         y -= 30
 
+        // Center button — auto-calculates X/Y to center the window
+        let centerBtn = NSButton(frame: NSRect(x: fieldX, y: y, width: 80, height: 24))
+        centerBtn.title = "⊹ Center"
+        centerBtn.bezelStyle = .rounded
+        centerBtn.font = NSFont.systemFont(ofSize: 11)
+        centerBtn.target = self
+        centerBtn.action = #selector(centerButtonClicked)
+        boxContent.addSubview(centerBtn)
+        y -= 30
+
         // Info text
         let centerInfo = NSTextField(labelWithString: "※ Layout 선택 시 Width/Height/X/Y가 자동 계산됩니다.")
         centerInfo.frame = NSRect(x: fieldX, y: y, width: 380, height: 16)
@@ -520,6 +531,13 @@ class SettingsWindowController: NSObject, NSTableViewDataSource, NSTableViewDele
         if let h = Int(heightField.stringValue), h > 0 {
             yField.stringValue = "\((screenH - h) / 2)"
         }
+    }
+
+    @objc func centerButtonClicked() {
+        autoCenterXY()
+        updatePlaceholders()
+        updateMinimap()
+        saveBtn?.isEnabled = true
     }
 
     @objc func layoutChanged(_ sender: NSPopUpButton) {
