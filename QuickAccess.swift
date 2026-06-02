@@ -473,6 +473,20 @@ class SettingsWindowController: NSObject, NSTableViewDataSource, NSTableViewDele
         reloadBtn.target = self
         reloadBtn.action = #selector(reload)
         content.addSubview(reloadBtn)
+
+        let exportBtn = NSButton(frame: NSRect(x: margin, y: margin, width: 70, height: 28))
+        exportBtn.title = "Export"
+        exportBtn.bezelStyle = .rounded
+        exportBtn.target = self
+        exportBtn.action = #selector(exportConfig)
+        content.addSubview(exportBtn)
+
+        let importBtn = NSButton(frame: NSRect(x: margin + 78, y: margin, width: 70, height: 28))
+        importBtn.title = "Import"
+        importBtn.bezelStyle = .rounded
+        importBtn.target = self
+        importBtn.action = #selector(importConfig)
+        content.addSubview(importBtn)
     }
 
     func clearFields() {
@@ -782,6 +796,41 @@ class SettingsWindowController: NSObject, NSTableViewDataSource, NSTableViewDele
 
     @objc func reload() {
         onReload?()
+    }
+
+    @objc func exportConfig() {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "quickaccess.json"
+        panel.allowedContentTypes = [.json]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let configPath = NSString(string: "~/.quickaccess.json").expandingTildeInPath
+        do {
+            try FileManager.default.copyItem(at: URL(fileURLWithPath: configPath), to: url)
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = "Export failed."
+            alert.informativeText = error.localizedDescription
+            alert.runModal()
+        }
+    }
+
+    @objc func importConfig() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let data = try Data(contentsOf: url)
+            _ = try JSONDecoder().decode(Config.self, from: data)
+            let configPath = NSString(string: "~/.quickaccess.json").expandingTildeInPath
+            try data.write(to: URL(fileURLWithPath: configPath), options: .atomic)
+            onReload?()
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = "Import failed."
+            alert.informativeText = "Invalid config file."
+            alert.runModal()
+        }
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
