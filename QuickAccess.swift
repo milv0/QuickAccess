@@ -10,6 +10,9 @@
 import Cocoa
 
 enum Defaults {
+    static let appVersion = "1.0.0"
+    static let repoOwner = "milv0"
+    static let repoName = "QuickAccess"
     static let defaultWidth = 800
     static let defaultHeight = 600
     static let defaultX = 100
@@ -837,6 +840,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.attributedTitle = attr
         }
         buildMenu()
+        checkForUpdatesOnLaunch()
     }
 
     // MARK: Config handling — copies default config on first launch
@@ -902,6 +906,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let about = NSMenuItem(title: "About QuickAccess", action: #selector(showAbout), keyEquivalent: "")
         about.target = self
         menu.addItem(about)
+        let update = NSMenuItem(title: "Check for Updates...", action: #selector(checkForUpdates), keyEquivalent: "")
+        update.target = self
+        menu.addItem(update)
         menu.addItem(.separator())
         let quit = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "")
         quit.target = self
@@ -912,7 +919,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showAbout() {
         let alert = NSAlert()
         alert.messageText = "QuickAccess"
-        alert.informativeText = "Version 1.0.0\n\nMade by Mingyu Park\nuqwe00@gmail.com\nbrianmg@naver.com"
+        alert.informativeText = "Version \(Defaults.appVersion)\n\nMade by Mingyu Park\nuqwe00@gmail.com\nbrianmg@naver.com"
         alert.alertStyle = .informational
         alert.addButton(withTitle: "OK")
         NSApp.setActivationPolicy(.regular)
@@ -1034,6 +1041,88 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func reloadConfig() {
         loadConfig()
         buildMenu()
+    }
+
+    @objc func checkForUpdates() {
+        let urlStr = "https://api.github.com/repos/\(Defaults.repoOwner)/\(Defaults.repoName)/releases/latest"
+        guard let url = URL(string: urlStr) else { return }
+        var request = URLRequest(url: url)
+        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    let alert = NSAlert()
+                    alert.messageText = "업데이트 확인 실패"
+                    alert.informativeText = error.localizedDescription
+                    alert.alertStyle = .warning
+                    alert.runModal()
+                    return
+                }
+
+                let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+                guard let data = data,
+                      statusCode == 200,
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let tagName = json["tag_name"] as? String else {
+                    // No release found or API error — treat as up to date
+                    let alert = NSAlert()
+                    alert.messageText = "최신 버전입니다"
+                    alert.informativeText = "현재 v\(Defaults.appVersion) 사용 중"
+                    alert.alertStyle = .informational
+                    alert.runModal()
+                    return
+                }
+
+                let latestVersion = tagName.trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
+                if latestVersion.compare(Defaults.appVersion, options: .numeric) == .orderedDescending {
+                    let alert = NSAlert()
+                    alert.messageText = "새 버전이 있습니다!"
+                    alert.informativeText = "현재: v\(Defaults.appVersion)\n최신: v\(latestVersion)"
+                    alert.addButton(withTitle: "다운로드 페이지 열기")
+                    alert.addButton(withTitle: "나중에")
+                    if alert.runModal() == .alertFirstButtonReturn {
+                        let releaseURL = "https://github.com/\(Defaults.repoOwner)/\(Defaults.repoName)/releases/latest"
+                        NSWorkspace.shared.open(URL(string: releaseURL)!)
+                    }
+                } else {
+                    let alert = NSAlert()
+                    alert.messageText = "최신 버전입니다"
+                    alert.informativeText = "현재 v\(Defaults.appVersion) 사용 중"
+                    alert.alertStyle = .informational
+                    alert.runModal()
+                }
+            }
+        }.resume()
+    }
+
+    /// Silent update check on launch — only shows alert when a new version exists
+    func checkForUpdatesOnLaunch() {
+        let urlStr = "https://api.github.com/repos/\(Defaults.repoOwner)/\(Defaults.repoName)/releases/latest"
+        guard let url = URL(string: urlStr) else { return }
+        var request = URLRequest(url: url)
+        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            guard let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let tagName = json["tag_name"] as? String else { return }
+
+            let latestVersion = tagName.trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
+            if latestVersion.compare(Defaults.appVersion, options: .numeric) == .orderedDescending {
+                DispatchQueue.main.async {
+                    let alert = NSAlert()
+                    alert.messageText = "QuickAccess 업데이트 가능"
+                    alert.informativeText = "v\(latestVersion) 버전을 사용할 수 있습니다. (현재 v\(Defaults.appVersion))"
+                    alert.addButton(withTitle: "다운로드")
+                    alert.addButton(withTitle: "무시")
+                    if alert.runModal() == .alertFirstButtonReturn {
+                        let releaseURL = "https://github.com/\(Defaults.repoOwner)/\(Defaults.repoName)/releases/latest"
+                        NSWorkspace.shared.open(URL(string: releaseURL)!)
+                    }
+                }
+            }
+        }.resume()
     }
 
     @objc func quitApp() {
