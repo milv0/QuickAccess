@@ -12,7 +12,7 @@ import ServiceManagement
 import SwiftUI
 
 enum Defaults {
-    static let appVersion = "2.2.0"
+    static let appVersion = "2.2.1"
     static let defaultWidth = 800
     static let defaultHeight = 600
     static let defaultX = 100
@@ -161,6 +161,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let about = NSMenuItem(title: "About QuickAccess", action: #selector(showAbout), keyEquivalent: "")
         about.target = self
         menu.addItem(about)
+        let guide = NSMenuItem(title: "User Guide", action: #selector(showGuide), keyEquivalent: "")
+        guide.target = self
+        menu.addItem(guide)
         let loginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
         loginItem.target = self
         loginItem.state = isLaunchAtLoginEnabled() ? .on : .off
@@ -181,7 +184,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         alert.runModal()
     }
 
-    // MARK: Site opening logic — launches Chrome in app mode, then repositions via AppleScript
+    @objc func showGuide() {
+        let alert = NSAlert()
+        alert.messageText = "QuickAccess User Guide ⚡"
+        alert.informativeText = "1. Click ⚡ in the menubar → select a site to launch\n2. Settings → add sites (Name + URL)\n3. Set Width/Height, then click ⊹ Center to auto-position\n4. Use Layout/Size presets for quick setup\n5. Import/Export to share settings with others\n6. Launch at Login for auto-start\n\n• All positions are relative to the built-in display\n• Allow Chrome automation when prompted"
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+
+    // MARK: Site opening logic
     @objc func openSite(_ sender: NSMenuItem) {
         guard let site = sender.representedObject as? Site else { return }
 
