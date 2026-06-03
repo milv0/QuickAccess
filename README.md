@@ -27,14 +27,14 @@ A macOS menubar app that launches websites in clean, standalone Chrome windows.
 
 ## Install
 
+**One command:**
+```bash
+curl -sL https://milv0.github.io/QuickAccess/install.sh | bash
+```
+
+**Or manually:**
 1. Download `QuickAccess.zip`
-2. Unzip
-3. Move `QuickAccess.app` to Applications (or run directly)
-4. **If you see "damaged" warning on first launch:**
-   ```bash
-   xattr -cr /Applications/QuickAccess.app
-   ```
-5. Run normally after that
+2. Unzip and run `install.sh` inside
 
 ## Usage
 
