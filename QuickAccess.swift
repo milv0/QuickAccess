@@ -12,7 +12,7 @@ import ServiceManagement
 import SwiftUI
 
 enum Defaults {
-    static let appVersion = "2.2.1"
+    static let appVersion = "2.2.2"
     static let defaultWidth = 800
     static let defaultHeight = 600
     static let defaultX = 100
