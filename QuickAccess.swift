@@ -9,6 +9,7 @@
 
 import Cocoa
 import ServiceManagement
+import SwiftUI
 
 enum Defaults {
     static let appVersion = "1.1.0"
@@ -50,899 +51,6 @@ struct Config: Codable {
     }
 }
 
-// MARK: - Layout Preview Button
-
-class LayoutPreviewButton: NSView {
-    var layoutIndex: Int = 0
-    var isSelected: Bool = false { didSet { needsDisplay = true } }
-    var onClick: ((Int) -> Void)?
-    private var isHovered: Bool = false
-    private var trackingArea: NSTrackingArea?
-
-    // Returns the filled rect proportional to the button bounds for each layout
-    private func filledRect() -> NSRect {
-        let b = bounds.insetBy(dx: 2, dy: 2)
-        switch layoutIndex {
-        case 0: // Center - small rect in middle
-            let w = b.width * 0.4, h = b.height * 0.4
-            return NSRect(x: b.origin.x + (b.width - w)/2, y: b.origin.y + (b.height - h)/2, width: w, height: h)
-        case 1: return NSRect(x: b.origin.x, y: b.origin.y, width: b.width/2, height: b.height) // Left Half
-        case 2: return NSRect(x: b.midX, y: b.origin.y, width: b.width/2, height: b.height) // Right Half
-        case 3: return NSRect(x: b.origin.x, y: b.midY, width: b.width, height: b.height/2) // Top Half
-        case 4: return NSRect(x: b.origin.x, y: b.origin.y, width: b.width, height: b.height/2) // Bottom Half
-        case 5: return NSRect(x: b.origin.x, y: b.midY, width: b.width/2, height: b.height/2) // Top-Left
-        case 6: return NSRect(x: b.midX, y: b.midY, width: b.width/2, height: b.height/2) // Top-Right
-        case 7: return NSRect(x: b.origin.x, y: b.origin.y, width: b.width/2, height: b.height/2) // Bottom-Left
-        case 8: return NSRect(x: b.midX, y: b.origin.y, width: b.width/2, height: b.height/2) // Bottom-Right
-        default: return .zero
-        }
-    }
-
-    override func draw(_ dirtyRect: NSRect) {
-        let b = bounds.insetBy(dx: 2, dy: 2)
-        // Screen outline
-        NSColor.lightGray.setStroke()
-        let outline = NSBezierPath(rect: b)
-        outline.lineWidth = 1
-        outline.stroke()
-        // Filled area
-        NSColor(calibratedRed: 139/255, green: 92/255, blue: 246/255, alpha: 1).setFill()
-        NSBezierPath(rect: filledRect()).fill()
-        // Selection/hover border
-        if isSelected {
-            NSColor.systemBlue.setStroke()
-            let sel = NSBezierPath(rect: bounds.insetBy(dx: 0.5, dy: 0.5))
-            sel.lineWidth = 2
-            sel.stroke()
-        } else if isHovered {
-            NSColor.systemBlue.withAlphaComponent(0.4).setStroke()
-            let hov = NSBezierPath(rect: bounds.insetBy(dx: 0.5, dy: 0.5))
-            hov.lineWidth = 1.5
-            hov.stroke()
-        }
-    }
-
-    override func mouseDown(with event: NSEvent) { onClick?(layoutIndex) }
-
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        if let t = trackingArea { removeTrackingArea(t) }
-        trackingArea = NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeInKeyWindow], owner: self)
-        addTrackingArea(trackingArea!)
-    }
-    override func mouseEntered(with event: NSEvent) { isHovered = true; needsDisplay = true }
-    override func mouseExited(with event: NSEvent) { isHovered = false; needsDisplay = true }
-}
-
-// MARK: - Minimap Preview View
-
-class MinimapView: NSView {
-    var siteX: CGFloat = 0
-    var siteY: CGFloat = 0
-    var siteW: CGFloat = 0
-    var siteH: CGFloat = 0
-    var hasSelection: Bool = false
-
-    override func draw(_ dirtyRect: NSRect) {
-        let b = bounds.insetBy(dx: 2, dy: 2)
-        // Screen outline — adapts to system appearance
-        NSColor.windowBackgroundColor.setFill()
-        NSBezierPath(rect: b).fill()
-        NSColor.separatorColor.setStroke()
-        let outline = NSBezierPath(rect: b)
-        outline.lineWidth = 1
-        outline.stroke()
-
-        guard hasSelection, let screen = NSScreen.main else { return }
-        let screenW = screen.frame.width
-        let screenH = screen.frame.height
-        guard siteW > 0, siteH > 0 else { return }
-
-        // Scale site rect to minimap
-        let scaleX = b.width / screenW
-        let scaleY = b.height / screenH
-        let rawRect = NSRect(x: b.origin.x + siteX * scaleX,
-                             y: b.origin.y + (screenH - siteY - siteH) * scaleY,
-                             width: siteW * scaleX,
-                             height: siteH * scaleY)
-        let rect = rawRect.intersection(b)
-        NSColor(calibratedRed: 139/255, green: 92/255, blue: 246/255, alpha: 0.5).setFill()
-        NSBezierPath(rect: rect).fill()
-        NSColor(calibratedRed: 139/255, green: 92/255, blue: 246/255, alpha: 1).setStroke()
-        let border = NSBezierPath(rect: rect)
-        border.lineWidth = 1
-        border.stroke()
-    }
-
-    func update(x: CGFloat, y: CGFloat, w: CGFloat, h: CGFloat, selected: Bool) {
-        siteX = x; siteY = y; siteW = w; siteH = h; hasSelection = selected
-        needsDisplay = true
-    }
-}
-
-// MARK: - Settings Window Controller
-
-class SettingsWindowController: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSWindowDelegate, NSTextFieldDelegate {
-    var window: NSWindow!
-    var tableView: NSTableView!
-    var sites: [Site] = []
-    var nameField: NSTextField!
-    var urlField: NSTextField!
-    var widthField: NSTextField!
-    var heightField: NSTextField!
-    var xField: NSTextField!
-    var yField: NSTextField!
-    var xMaxLabel: NSTextField!
-    var yMaxLabel: NSTextField!
-    var layoutPopup: NSPopUpButton!
-    var sizePopup: NSPopUpButton!
-    var backgroundCheckbox: NSButton!
-    var saveBtn: NSButton!
-    var layoutButtons: [LayoutPreviewButton] = []
-    var minimapView: MinimapView!
-    var runInBackground: Bool = true
-    var onSave: (([Site], Bool) -> Void)?
-    var onReload: (() -> Void)?
-    var isUpdatingFromPreset = false
-    var previousSelectedRow = -1
-
-    func showWindow(sites: [Site], runInBackground: Bool, onSave: @escaping ([Site], Bool) -> Void) {
-        self.sites = sites
-        self.runInBackground = runInBackground
-        self.onSave = onSave
-
-        if window == nil {
-            setupWindow()
-        }
-        tableView.reloadData()
-        clearFields()
-        previousSelectedRow = -1
-        backgroundCheckbox?.state = runInBackground ? .on : .off
-
-        NSApp.setActivationPolicy(.regular)
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-    }
-
-    // MARK: Window setup — builds the settings UI layout
-    func setupWindow() {
-        guard let screen = NSScreen.main else {
-            NSLog("[QuickAccess] No screen available, cannot create settings window")
-            return
-        }
-
-        let winWidth: CGFloat = 780
-        let winHeight: CGFloat = 580
-
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: winWidth, height: winHeight),
-                          styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
-        window.isReleasedWhenClosed = false
-        window.title = "QuickAccess Settings"
-        window.minSize = NSSize(width: winWidth, height: winHeight)
-        window.center()
-        window.delegate = self
-
-        guard let content = window.contentView else { return }
-        content.wantsLayer = true
-        let gradient = CAGradientLayer()
-        gradient.frame = content.bounds
-        gradient.colors = [
-            NSColor(calibratedRed: 139/255, green: 92/255, blue: 246/255, alpha: 0.06).cgColor,
-            NSColor(calibratedRed: 139/255, green: 92/255, blue: 246/255, alpha: 0.0).cgColor
-        ]
-        gradient.startPoint = CGPoint(x: 0.5, y: 1)
-        gradient.endPoint = CGPoint(x: 0.5, y: 0)
-        gradient.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-        content.layer?.addSublayer(gradient)
-
-        let margin: CGFloat = 16
-        let tableWidth: CGFloat = 180
-        let bottomBarHeight: CGFloat = 50
-
-        // Left panel: site list table with full height
-        let tableTop = winHeight - margin
-        let tableBottom = bottomBarHeight + margin + 36
-        let scrollView = NSScrollView(frame: NSRect(x: margin, y: tableBottom, width: tableWidth, height: tableTop - tableBottom))
-        scrollView.autoresizingMask = [.height]
-        tableView = NSTableView()
-        let col = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("name"))
-        col.title = "Sites"
-        col.width = tableWidth - 20
-        tableView.addTableColumn(col)
-        tableView.dataSource = self
-        tableView.delegate = self
-        tableView.headerView = NSTableHeaderView()
-        scrollView.documentView = tableView
-        scrollView.hasVerticalScroller = true
-        scrollView.borderType = .bezelBorder
-        content.addSubview(scrollView)
-
-        // Add/Remove/↑/↓ buttons below table
-        let btnY = bottomBarHeight + margin
-        let addBtn = NSButton(frame: NSRect(x: margin, y: btnY, width: 50, height: 28))
-        addBtn.title = "Add"
-        addBtn.bezelStyle = .rounded
-        addBtn.target = self
-        addBtn.action = #selector(addSite)
-        content.addSubview(addBtn)
-
-        let removeBtn = NSButton(frame: NSRect(x: margin + 58, y: btnY, width: 65, height: 28))
-        removeBtn.title = "Remove"
-        removeBtn.bezelStyle = .rounded
-        removeBtn.target = self
-        removeBtn.action = #selector(removeSite)
-        content.addSubview(removeBtn)
-
-        let upBtn = NSButton(frame: NSRect(x: margin + 58 + 73, y: btnY + 2, width: 24, height: 24))
-        upBtn.title = "↑"
-        upBtn.bezelStyle = .rounded
-        upBtn.target = self
-        upBtn.action = #selector(moveSiteUp)
-        content.addSubview(upBtn)
-
-        let downBtn = NSButton(frame: NSRect(x: margin + 58 + 73 + 32, y: btnY + 2, width: 24, height: 24))
-        downBtn.title = "↓"
-        downBtn.bezelStyle = .rounded
-        downBtn.target = self
-        downBtn.action = #selector(moveSiteDown)
-        content.addSubview(downBtn)
-
-        // Right panel: NSBox grouping form fields
-        let boxX = margin + tableWidth + margin
-        let boxWidth = winWidth - boxX - margin
-        let boxHeight = winHeight - bottomBarHeight - margin * 2
-        let box = NSBox(frame: NSRect(x: boxX, y: bottomBarHeight + margin, width: boxWidth, height: boxHeight))
-        box.title = "Site Configuration"
-        box.titlePosition = .atTop
-        box.boxType = .primary
-        box.autoresizingMask = [.height, .width]
-        content.addSubview(box)
-
-        let boxContent = box.contentView!
-        let labelWidth: CGFloat = 70
-        let labelFont = NSFont.systemFont(ofSize: 13)
-        let formX: CGFloat = 4
-        let fieldX: CGFloat = labelWidth + 12
-        let fieldWidth: CGFloat = 250
-        let fieldHeight: CGFloat = 22
-
-        let screenW = Int(screen.frame.width)
-        let screenH = Int(screen.frame.height)
-
-        // Top-down y calculation
-        let boxInnerHeight = boxHeight - 30 // account for NSBox title
-        var y = boxInnerHeight - 30 // start from top with padding
-
-        // Screen info label
-        let screenLabel = NSTextField(labelWithString: "Screen: \(screenW) × \(screenH)")
-        screenLabel.frame = NSRect(x: fieldX, y: y, width: fieldWidth, height: 18)
-        screenLabel.font = NSFont.systemFont(ofSize: 11)
-        screenLabel.textColor = .secondaryLabelColor
-        boxContent.addSubview(screenLabel)
-        y -= 28
-
-        // Visual layout preview buttons (9 buttons)
-        let lbtnWidth: CGFloat = 38
-        let lbtnHeight: CGFloat = round(lbtnWidth * CGFloat(screenH) / CGFloat(screenW))
-        let lbtnSpacing: CGFloat = 3
-        let totalBtnWidth = 9 * lbtnWidth + 8 * lbtnSpacing
-        let btnStartX = (boxWidth - 20 - totalBtnWidth) / 2
-        layoutButtons = []
-        for i in 0..<9 {
-            let btn = LayoutPreviewButton(frame: NSRect(x: btnStartX + CGFloat(i) * (lbtnWidth + lbtnSpacing), y: y, width: lbtnWidth, height: lbtnHeight))
-            btn.layoutIndex = i
-            btn.onClick = { [weak self] idx in self?.layoutButtonClicked(idx) }
-            boxContent.addSubview(btn)
-            layoutButtons.append(btn)
-        }
-        y -= 32
-
-        // Layout dropdown
-        let layoutLabel = NSTextField(labelWithString: "Layout:")
-        layoutLabel.frame = NSRect(x: formX, y: y, width: labelWidth, height: fieldHeight)
-        layoutLabel.alignment = .right
-        layoutLabel.font = labelFont
-        boxContent.addSubview(layoutLabel)
-        layoutPopup = NSPopUpButton(frame: NSRect(x: fieldX, y: y, width: fieldWidth, height: fieldHeight), pullsDown: false)
-        layoutPopup.addItems(withTitles: ["Custom", "Center", "Left Half", "Right Half", "Top Half", "Bottom Half", "Top-Left", "Top-Right", "Bottom-Left", "Bottom-Right"])
-        layoutPopup.target = self
-        layoutPopup.action = #selector(layoutChanged(_:))
-        boxContent.addSubview(layoutPopup)
-        y -= 26
-
-        // Size dropdown
-        let sizeLabel = NSTextField(labelWithString: "Size:")
-        sizeLabel.frame = NSRect(x: formX, y: y, width: labelWidth, height: fieldHeight)
-        sizeLabel.alignment = .right
-        sizeLabel.font = labelFont
-        boxContent.addSubview(sizeLabel)
-        sizePopup = NSPopUpButton(frame: NSRect(x: fieldX, y: y, width: fieldWidth, height: fieldHeight), pullsDown: false)
-        sizePopup.addItems(withTitles: ["Custom", "Tiny (400x200)", "Mini (600x300)", "Medium (800x500)", "Large (1000x700)", "XL (1200x800)", "Wide (1000x400)", "Tall (500x800)", "Full (1400x900)"])
-        sizePopup.target = self
-        sizePopup.action = #selector(sizeChanged(_:))
-        boxContent.addSubview(sizePopup)
-        y -= 26
-
-        // Name field
-        let nameLbl = NSTextField(labelWithString: "Name:")
-        nameLbl.frame = NSRect(x: formX, y: y, width: labelWidth, height: fieldHeight)
-        nameLbl.alignment = .right
-        nameLbl.font = labelFont
-        boxContent.addSubview(nameLbl)
-        nameField = NSTextField(frame: NSRect(x: fieldX, y: y, width: fieldWidth, height: fieldHeight))
-        boxContent.addSubview(nameField)
-        y -= 26
-
-        // URL field
-        let urlLbl = NSTextField(labelWithString: "URL:")
-        urlLbl.frame = NSRect(x: formX, y: y, width: labelWidth, height: fieldHeight)
-        urlLbl.alignment = .right
-        urlLbl.font = labelFont
-        boxContent.addSubview(urlLbl)
-        urlField = NSTextField(frame: NSRect(x: fieldX, y: y, width: fieldWidth, height: fieldHeight))
-        boxContent.addSubview(urlField)
-        y -= 26
-
-        // Width field
-        let widthLbl = NSTextField(labelWithString: "Width:")
-        widthLbl.frame = NSRect(x: formX, y: y, width: labelWidth, height: fieldHeight)
-        widthLbl.alignment = .right
-        widthLbl.font = labelFont
-        boxContent.addSubview(widthLbl)
-        widthField = NSTextField(frame: NSRect(x: fieldX, y: y, width: fieldWidth, height: fieldHeight))
-        widthField.placeholderString = "max: \(screenW)"
-        widthField.delegate = self
-        boxContent.addSubview(widthField)
-        y -= 26
-
-        // Height field
-        let heightLbl = NSTextField(labelWithString: "Height:")
-        heightLbl.frame = NSRect(x: formX, y: y, width: labelWidth, height: fieldHeight)
-        heightLbl.alignment = .right
-        heightLbl.font = labelFont
-        boxContent.addSubview(heightLbl)
-        heightField = NSTextField(frame: NSRect(x: fieldX, y: y, width: fieldWidth, height: fieldHeight))
-        heightField.placeholderString = "max: \(screenH)"
-        heightField.delegate = self
-        boxContent.addSubview(heightField)
-        y -= 26
-
-        // X field + xMaxLabel
-        let xLbl = NSTextField(labelWithString: "X:")
-        xLbl.frame = NSRect(x: formX, y: y, width: labelWidth, height: fieldHeight)
-        xLbl.alignment = .right
-        xLbl.font = labelFont
-        boxContent.addSubview(xLbl)
-        xField = NSTextField(frame: NSRect(x: fieldX, y: y, width: fieldWidth, height: fieldHeight))
-        xField.placeholderString = "0 ~ \(screenW)"
-        xField.delegate = self
-        boxContent.addSubview(xField)
-        xMaxLabel = NSTextField(labelWithString: "")
-        xMaxLabel.frame = NSRect(x: fieldX + fieldWidth + 8, y: y + 2, width: 90, height: 18)
-        xMaxLabel.font = NSFont.systemFont(ofSize: 10)
-        xMaxLabel.textColor = .secondaryLabelColor
-        xMaxLabel.isBordered = false
-        xMaxLabel.isEditable = false
-        boxContent.addSubview(xMaxLabel)
-        y -= 26
-
-        // Y field + yMaxLabel
-        let yLbl = NSTextField(labelWithString: "Y:")
-        yLbl.frame = NSRect(x: formX, y: y, width: labelWidth, height: fieldHeight)
-        yLbl.alignment = .right
-        yLbl.font = labelFont
-        boxContent.addSubview(yLbl)
-        yField = NSTextField(frame: NSRect(x: fieldX, y: y, width: fieldWidth, height: fieldHeight))
-        yField.placeholderString = "0 ~ \(screenH)"
-        yField.delegate = self
-        boxContent.addSubview(yField)
-        yMaxLabel = NSTextField(labelWithString: "")
-        yMaxLabel.frame = NSRect(x: fieldX + fieldWidth + 8, y: y + 2, width: 90, height: 18)
-        yMaxLabel.font = NSFont.systemFont(ofSize: 10)
-        yMaxLabel.textColor = .secondaryLabelColor
-        yMaxLabel.isBordered = false
-        yMaxLabel.isEditable = false
-        boxContent.addSubview(yMaxLabel)
-        y -= 26
-
-        // Center button — auto-calculates X/Y to center the window
-        let centerBtn = NSButton(frame: NSRect(x: fieldX, y: y, width: 80, height: 24))
-        centerBtn.title = "⊹ Center"
-        centerBtn.bezelStyle = .rounded
-        centerBtn.font = NSFont.systemFont(ofSize: 11)
-        centerBtn.target = self
-        centerBtn.action = #selector(centerButtonClicked)
-        boxContent.addSubview(centerBtn)
-        y -= 24
-
-        // Minimap preview
-        let minimapWidth: CGFloat = 120
-        let minimapHeight: CGFloat = minimapWidth * (screen.frame.height / screen.frame.width)
-        let minimapX = (boxWidth - 20 - minimapWidth) / 2
-        minimapView = MinimapView(frame: NSRect(x: minimapX, y: y - minimapHeight, width: minimapWidth, height: minimapHeight))
-        boxContent.addSubview(minimapView)
-
-        // Bottom bar: background checkbox left, Save/Reload right
-        backgroundCheckbox = NSButton(frame: NSRect(x: margin, y: margin + 28 + 8, width: 280, height: 20))
-        backgroundCheckbox.setButtonType(.switch)
-        backgroundCheckbox.title = "Run in Background (no Dock icon)"
-        backgroundCheckbox.font = NSFont.systemFont(ofSize: 12)
-        backgroundCheckbox.state = .on
-        content.addSubview(backgroundCheckbox)
-
-        saveBtn = NSButton(frame: NSRect(x: winWidth - margin - 80, y: margin, width: 80, height: 28))
-        saveBtn.title = "Save"
-        saveBtn.bezelStyle = .rounded
-        saveBtn.target = self
-        saveBtn.action = #selector(save)
-        content.addSubview(saveBtn)
-
-        let reloadBtn = NSButton(frame: NSRect(x: winWidth - margin - 80 - 8 - 80, y: margin, width: 80, height: 28))
-        reloadBtn.title = "Reload"
-        reloadBtn.bezelStyle = .rounded
-        reloadBtn.target = self
-        reloadBtn.action = #selector(reload)
-        content.addSubview(reloadBtn)
-
-        let exportBtn = NSButton(frame: NSRect(x: margin, y: margin, width: 70, height: 28))
-        exportBtn.title = "Export"
-        exportBtn.bezelStyle = .rounded
-        exportBtn.target = self
-        exportBtn.action = #selector(exportConfig)
-        content.addSubview(exportBtn)
-
-        let importBtn = NSButton(frame: NSRect(x: margin + 78, y: margin, width: 70, height: 28))
-        importBtn.title = "Import"
-        importBtn.bezelStyle = .rounded
-        importBtn.target = self
-        importBtn.action = #selector(importConfig)
-        content.addSubview(importBtn)
-
-        let uninstallBtn = NSButton(frame: NSRect(x: margin + 78 + 78, y: margin, width: 80, height: 28))
-        uninstallBtn.title = "Uninstall"
-        uninstallBtn.bezelStyle = .rounded
-        uninstallBtn.contentTintColor = .systemRed
-        uninstallBtn.target = self
-        uninstallBtn.action = #selector(uninstallApp)
-        content.addSubview(uninstallBtn)
-    }
-
-    func clearFields() {
-        nameField.stringValue = ""
-        urlField.stringValue = ""
-        widthField.stringValue = ""
-        heightField.stringValue = ""
-        xField.stringValue = ""
-        yField.stringValue = ""
-        layoutPopup?.selectItem(at: 0)
-        sizePopup?.selectItem(at: 0)
-        updateLayoutButtonSelection(-1)
-        updatePlaceholders()
-        minimapView?.update(x: 0, y: 0, w: 0, h: 0, selected: false)
-    }
-
-    func controlTextDidChange(_ notification: Notification) {
-        guard let field = notification.object as? NSTextField else { return }
-        saveBtn?.isEnabled = true
-        // Numeric-only validation for position/size fields
-        if field === widthField || field === heightField || field === xField || field === yField {
-            let filtered = field.stringValue.filter { $0.isNumber }
-            if filtered != field.stringValue { field.stringValue = filtered }
-        }
-        // Skip preset resets when values are being set programmatically
-        if isUpdatingFromPreset {
-            updatePlaceholders()
-            updateMinimap()
-            return
-        }
-        if field === widthField || field === heightField {
-            sizePopup?.selectItem(at: 0)
-            updatePlaceholders()
-            if layoutPopup.indexOfSelectedItem == 1 { // "Center"
-                autoCenterXY()
-            } else {
-                layoutPopup.selectItem(at: 0) // "Custom"
-                updateLayoutButtonSelection(-1)
-                updateSizeFieldsEnabled()
-            }
-        } else if field === xField || field === yField {
-            layoutPopup.selectItem(at: 0) // "Custom"
-            updateLayoutButtonSelection(-1)
-            updateSizeFieldsEnabled()
-        }
-        updateMinimap()
-    }
-
-    // Auto-fill X/Y to center the window on screen based on current width/height
-    func autoCenterXY() {
-        guard let screen = NSScreen.main else { return }
-        let screenW = Int(screen.frame.width)
-        let screenH = Int(screen.frame.height)
-        if let w = Int(widthField.stringValue), w > 0 {
-            xField.stringValue = "\((screenW - w) / 2)"
-        }
-        if let h = Int(heightField.stringValue), h > 0 {
-            yField.stringValue = "\((screenH - h) / 2)"
-        }
-    }
-
-    @objc func centerButtonClicked() {
-        autoCenterXY()
-        updatePlaceholders()
-        updateMinimap()
-        saveBtn?.isEnabled = true
-    }
-
-
-    @objc func layoutChanged(_ sender: NSPopUpButton) {
-        saveBtn?.isEnabled = true
-        guard let screen = NSScreen.main else { return }
-        let screenW = Int(screen.frame.width)
-        let screenH = Int(screen.frame.height)
-        let idx = sender.indexOfSelectedItem
-        updateLayoutButtonSelection(idx - 1)
-        guard idx > 0 else { return } // "Custom" — do nothing
-
-        isUpdatingFromPreset = true
-        if idx == 1 { // "Center"
-            let w = Int(widthField.stringValue) ?? 600
-            let h = Int(heightField.stringValue) ?? 400
-            if widthField.stringValue.isEmpty { widthField.stringValue = "600" }
-            if heightField.stringValue.isEmpty { heightField.stringValue = "400" }
-            xField.stringValue = "\((screenW - w) / 2)"
-            yField.stringValue = "\((screenH - h) / 2)"
-        } else {
-            let presets: [(Int, Int, Int, Int)] = [
-                (screenW/2, screenH, 0, 0),           // Left Half
-                (screenW/2, screenH, screenW/2, 0),   // Right Half
-                (screenW, screenH/2, 0, 0),           // Top Half
-                (screenW, screenH/2, 0, screenH/2),   // Bottom Half
-                (screenW/2, screenH/2, 0, 0),         // Top-Left
-                (screenW/2, screenH/2, screenW/2, 0), // Top-Right
-                (screenW/2, screenH/2, 0, screenH/2), // Bottom-Left
-                (screenW/2, screenH/2, screenW/2, screenH/2), // Bottom-Right
-            ]
-            let p = presets[idx - 2]
-            widthField.stringValue = "\(p.0)"
-            heightField.stringValue = "\(p.1)"
-            xField.stringValue = "\(p.2)"
-            yField.stringValue = "\(p.3)"
-        }
-        isUpdatingFromPreset = false
-        updatePlaceholders()
-        updateMinimap()
-        updateSizeFieldsEnabled()
-    }
-
-    func updateSizeFieldsEnabled() {
-        let idx = layoutPopup.indexOfSelectedItem
-        // Only Center (1) allows size editing
-        let editable = idx == 0 || idx == 1
-        let sizeEnabled = idx == 1
-        widthField.isEditable = editable
-        heightField.isEditable = editable
-        sizePopup.isEnabled = sizeEnabled
-        widthField.textColor = editable ? .labelColor : .secondaryLabelColor
-        heightField.textColor = editable ? .labelColor : .secondaryLabelColor
-    }
-
-    @objc func sizeChanged(_ sender: NSPopUpButton) {
-        saveBtn?.isEnabled = true
-        let idx = sender.indexOfSelectedItem
-        guard idx > 0 else { return } // "Custom" — do nothing
-        let sizes: [(Int, Int)] = [(400,200), (600,300), (800,500), (1000,700), (1200,800), (1000,400), (500,800), (1400,900)]
-        let (w, h) = sizes[idx - 1]
-        isUpdatingFromPreset = true
-        widthField.stringValue = "\(w)"
-        heightField.stringValue = "\(h)"
-        isUpdatingFromPreset = false
-        updatePlaceholders()
-        if layoutPopup.indexOfSelectedItem == 1 { // "Center"
-            autoCenterXY()
-        }
-        updateMinimap()
-    }
-
-    func layoutButtonClicked(_ index: Int) {
-        // index 0-8 maps to layoutPopup index 1-9
-        layoutPopup.selectItem(at: index + 1)
-        layoutChanged(layoutPopup)
-    }
-
-    func updateLayoutButtonSelection(_ index: Int) {
-        for (i, btn) in layoutButtons.enumerated() {
-            btn.isSelected = (i == index)
-        }
-    }
-
-    // Updates placeholder text based on current width/height values
-    func updatePlaceholders() {
-        guard let screen = NSScreen.main else { return }
-        let screenW = Int(screen.frame.width)
-        let screenH = Int(screen.frame.height)
-        if let w = Int(widthField.stringValue), w > 0 {
-            xField.placeholderString = "0 ~ \(screenW - w)"
-            xMaxLabel?.stringValue = "max: \(screenW - w)"
-        } else {
-            xField.placeholderString = "0 ~ \(screenW)"
-            xMaxLabel?.stringValue = "max: \(screenW)"
-        }
-        if let h = Int(heightField.stringValue), h > 0 {
-            yField.placeholderString = "0 ~ \(screenH - h)"
-            yMaxLabel?.stringValue = "max: \(screenH - h)"
-        } else {
-            yField.placeholderString = "0 ~ \(screenH)"
-            yMaxLabel?.stringValue = "max: \(screenH)"
-        }
-    }
-
-    func numberOfRows(in tableView: NSTableView) -> Int { sites.count }
-
-    func tableView(_ tableView: NSTableView, objectValueFor tableColumn: NSTableColumn?, row: Int) -> Any? {
-        sites[row].name
-    }
-
-    func tableViewSelectionDidChange(_ notification: Notification) {
-        let row = tableView.selectedRow
-        guard row >= 0 else { return }
-
-        // Check for unsaved changes in previous selection
-        if previousSelectedRow >= 0 && previousSelectedRow < sites.count {
-            let prev = sites[previousSelectedRow]
-            if nameField.stringValue != prev.name ||
-               urlField.stringValue != prev.url ||
-               widthField.stringValue != "\(prev.width)" ||
-               heightField.stringValue != "\(prev.height)" ||
-               xField.stringValue != "\(prev.x)" ||
-               yField.stringValue != "\(prev.y)" {
-                let alert = NSAlert()
-                alert.messageText = "You have unsaved changes. Discard?"
-                alert.addButton(withTitle: "Discard")
-                alert.addButton(withTitle: "Cancel")
-                if alert.runModal() != .alertFirstButtonReturn {
-                    tableView.selectRowIndexes(IndexSet(integer: previousSelectedRow), byExtendingSelection: false)
-                    return
-                }
-            }
-        }
-
-        let s = sites[row]
-        nameField.stringValue = s.name
-        urlField.stringValue = s.url
-        widthField.stringValue = "\(s.width)"
-        heightField.stringValue = "\(s.height)"
-        xField.stringValue = "\(s.x)"
-        yField.stringValue = "\(s.y)"
-
-        // Auto-detect layout preset
-        if let screen = NSScreen.main {
-            let screenW = Int(screen.frame.width)
-            let screenH = Int(screen.frame.height)
-            let layoutPresets: [(Int, Int, Int, Int)] = [
-                (s.width, s.height, (screenW - s.width) / 2, (screenH - s.height) / 2), // Center
-                (screenW/2, screenH, 0, 0),           // Left Half
-                (screenW/2, screenH, screenW/2, 0),   // Right Half
-                (screenW, screenH/2, 0, 0),           // Top Half
-                (screenW, screenH/2, 0, screenH/2),   // Bottom Half
-                (screenW/2, screenH/2, 0, 0),         // Top-Left
-                (screenW/2, screenH/2, screenW/2, 0), // Top-Right
-                (screenW/2, screenH/2, 0, screenH/2), // Bottom-Left
-                (screenW/2, screenH/2, screenW/2, screenH/2), // Bottom-Right
-            ]
-            var detectedLayout = 0
-            // Check non-center presets (index 1-8)
-            for (i, p) in layoutPresets.enumerated() where i > 0 {
-                if s.width == p.0 && s.height == p.1 && s.x == p.2 && s.y == p.3 {
-                    detectedLayout = i + 1; break
-                }
-            }
-            // Check center (index 0) — x/y match centered values
-            if detectedLayout == 0 && s.x == (screenW - s.width) / 2 && s.y == (screenH - s.height) / 2 {
-                detectedLayout = 1
-            }
-            layoutPopup.selectItem(at: detectedLayout)
-            updateLayoutButtonSelection(detectedLayout - 1)
-        } else {
-            layoutPopup.selectItem(at: 0)
-            updateLayoutButtonSelection(-1)
-        }
-
-        // Auto-detect size preset
-        let sizePresets: [(Int, Int)] = [(400,200), (600,300), (800,500), (1000,700), (1200,800), (1000,400), (500,800), (1400,900)]
-        var detectedSize = 0
-        for (i, sz) in sizePresets.enumerated() {
-            if s.width == sz.0 && s.height == sz.1 { detectedSize = i + 1; break }
-        }
-        sizePopup.selectItem(at: detectedSize)
-
-        updateSizeFieldsEnabled()
-        updatePlaceholders()
-        updateMinimap()
-        previousSelectedRow = row
-    }
-
-    @objc func addSite() {
-        sites.append(Site(name: "New Site", url: "https://", width: Defaults.defaultWidth, height: Defaults.defaultHeight, x: Defaults.defaultX, y: Defaults.defaultY))
-        tableView.reloadData()
-        tableView.selectRowIndexes(IndexSet(integer: sites.count - 1), byExtendingSelection: false)
-    }
-
-    @objc func removeSite() {
-        let row = tableView.selectedRow
-        guard row >= 0 else { return }
-        let alert = NSAlert()
-        alert.messageText = "Are you sure you want to delete?"
-        alert.informativeText = "This will remove \"\(sites[row].name)\"."
-        alert.addButton(withTitle: "Delete")
-        alert.addButton(withTitle: "Cancel")
-        alert.alertStyle = .warning
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-        sites.remove(at: row)
-        tableView.reloadData()
-        clearFields()
-        previousSelectedRow = -1
-    }
-
-    @objc func moveSiteUp() {
-        let row = tableView.selectedRow
-        guard row > 0 else { return }
-        sites.swapAt(row, row - 1)
-        tableView.reloadData()
-        previousSelectedRow = row - 1
-        tableView.selectRowIndexes(IndexSet(integer: row - 1), byExtendingSelection: false)
-    }
-
-    @objc func moveSiteDown() {
-        let row = tableView.selectedRow
-        guard row >= 0, row < sites.count - 1 else { return }
-        sites.swapAt(row, row + 1)
-        tableView.reloadData()
-        previousSelectedRow = row + 1
-        tableView.selectRowIndexes(IndexSet(integer: row + 1), byExtendingSelection: false)
-    }
-
-    func updateMinimap() {
-        let selected = tableView.selectedRow >= 0 || !widthField.stringValue.isEmpty
-        let w = CGFloat(Int(widthField.stringValue) ?? 0)
-        let h = CGFloat(Int(heightField.stringValue) ?? 0)
-        let x = CGFloat(Int(xField.stringValue) ?? 0)
-        let y = CGFloat(Int(yField.stringValue) ?? 0)
-        minimapView?.update(x: x, y: y, w: w, h: h, selected: selected)
-    }
-
-    // MARK: Save — validates URL, persists config, and hides window
-    @objc func save() {
-        let row = tableView.selectedRow
-        if row >= 0 {
-            // Empty name validation
-            if nameField.stringValue.trimmingCharacters(in: .whitespaces).isEmpty {
-                let alert = NSAlert()
-                alert.messageText = "Please enter a name."
-                alert.alertStyle = .warning
-                alert.runModal()
-                return
-            }
-
-            // Basic URL validation: must not be empty and must start with "http"
-            let url = urlField.stringValue.trimmingCharacters(in: .whitespaces)
-            if url.isEmpty || URL(string: url)?.scheme?.hasPrefix("http") != true || URL(string: url)?.host == nil {
-                let alert = NSAlert()
-                alert.messageText = "Invalid URL"
-                alert.informativeText = "Please enter a valid URL starting with \"http://\" or \"https://\"."
-                alert.alertStyle = .warning
-                alert.runModal()
-                return
-            }
-
-            guard let screen = NSScreen.main else { return }
-            let screenW = Int(screen.frame.width)
-            let screenH = Int(screen.frame.height)
-            var w = Int(widthField.stringValue) ?? Defaults.defaultWidth
-            var h = Int(heightField.stringValue) ?? Defaults.defaultHeight
-            w = max(100, min(w, screenW))
-            h = max(100, min(h, screenH))
-            var x = Int(xField.stringValue) ?? Defaults.defaultX
-            var y = Int(yField.stringValue) ?? Defaults.defaultY
-            x = max(0, min(x, screenW - w))
-            y = max(0, min(y, screenH - h))
-            sites[row] = Site(name: nameField.stringValue, url: url,
-                              width: w, height: h, x: x, y: y)
-        }
-        onSave?(sites, backgroundCheckbox.state == .on)
-        saveBtn.isEnabled = false
-        saveBtn.title = "Saved ✓"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-            self?.saveBtn.title = "Save"
-        }
-    }
-
-    @objc func reload() {
-        onReload?()
-    }
-
-    @objc func exportConfig() {
-        let panel = NSSavePanel()
-        panel.nameFieldStringValue = "quickaccess.json"
-        panel.allowedContentTypes = [.json]
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        let configPath = NSString(string: "~/.quickaccess.json").expandingTildeInPath
-        do {
-            try FileManager.default.copyItem(at: URL(fileURLWithPath: configPath), to: url)
-        } catch {
-            let alert = NSAlert()
-            alert.messageText = "Export failed."
-            alert.informativeText = error.localizedDescription
-            alert.runModal()
-        }
-    }
-
-    @objc func importConfig() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.json]
-        panel.allowsMultipleSelection = false
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        do {
-            let data = try Data(contentsOf: url)
-            _ = try JSONDecoder().decode(Config.self, from: data)
-            let configPath = NSString(string: "~/.quickaccess.json").expandingTildeInPath
-            try data.write(to: URL(fileURLWithPath: configPath), options: .atomic)
-            onReload?()
-        } catch {
-            let alert = NSAlert()
-            alert.messageText = "Import failed."
-            alert.informativeText = "Invalid config file."
-            alert.runModal()
-        }
-    }
-
-    @objc func uninstallApp() {
-        let alert = NSAlert()
-        alert.messageText = "Uninstall QuickAccess?"
-        alert.informativeText = "This will remove the app, settings, and login item."
-        alert.addButton(withTitle: "Uninstall")
-        alert.addButton(withTitle: "Cancel")
-        alert.alertStyle = .critical
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-
-        if #available(macOS 13.0, *) {
-            try? SMAppService.mainApp.unregister()
-        }
-        let configPath = NSString(string: "~/.quickaccess.json").expandingTildeInPath
-        try? FileManager.default.removeItem(atPath: configPath)
-        let appPath = Bundle.main.bundlePath
-        NSWorkspace.shared.recycle([URL(fileURLWithPath: appPath)]) { _, _ in
-            NSApp.terminate(nil)
-        }
-    }
-
-    func windowShouldClose(_ sender: NSWindow) -> Bool {
-        if hasUnsavedChanges() {
-            let alert = NSAlert()
-            alert.messageText = "You have unsaved changes."
-            alert.informativeText = "Changes will be lost if you close."
-            alert.addButton(withTitle: "Close")
-            alert.addButton(withTitle: "Cancel")
-            return alert.runModal() == .alertFirstButtonReturn
-        }
-        return true
-    }
-
-    func windowWillClose(_ notification: Notification) {
-        NSApp.setActivationPolicy(runInBackground ? .accessory : .regular)
-    }
-
-    private func hasUnsavedChanges() -> Bool {
-        let row = tableView.selectedRow
-        guard row >= 0 && row < sites.count else { return false }
-        let s = sites[row]
-        return nameField.stringValue != s.name ||
-               urlField.stringValue != s.url ||
-               widthField.stringValue != "\(s.width)" ||
-               heightField.stringValue != "\(s.height)" ||
-               xField.stringValue != "\(s.x)" ||
-               yField.stringValue != "\(s.y)"
-    }
-}
 
 // MARK: - App Delegate — menu bar app lifecycle
 
@@ -950,7 +58,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
     var config: Config = Config(sites: [])
     let configPath = NSString(string: "~/.quickaccess.json").expandingTildeInPath
-    let settingsController = SettingsWindowController()
+    var settingsWindow: NSWindow?
     let resizeQueue = DispatchQueue(label: "com.mingyupark.QuickAccess.resize")
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -1131,33 +239,43 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func openSettings() {
-        if settingsController.onReload == nil {
-            settingsController.onReload = { [weak self] in
-                self?.reloadConfig()
-                if let sites = self?.config.sites {
-                    self?.settingsController.sites = sites
-                    self?.settingsController.tableView.reloadData()
-                    self?.settingsController.clearFields()
-                }
-            }
+        if let w = settingsWindow, w.isVisible {
+            w.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
         }
-        settingsController.showWindow(sites: config.sites, runInBackground: config.runInBackground) { [weak self] newSites, runInBackground in
+        
+        var sites = config.sites
+        var runInBackground = config.runInBackground
+        
+        var settingsView = SettingsView(sites: .init(get: { sites }, set: { sites = $0 }),
+                                         runInBackground: .init(get: { runInBackground }, set: { runInBackground = $0 }))
+        settingsView.onSave = { [weak self] newSites, bg in
             guard let self = self else { return }
-            self.config = Config(runInBackground: runInBackground, sites: newSites)
+            self.config = Config(runInBackground: bg, sites: newSites)
             let encoder = JSONEncoder()
             encoder.outputFormatting = .prettyPrinted
             if let data = try? encoder.encode(self.config) {
-                do {
-                    try data.write(to: URL(fileURLWithPath: self.configPath), options: .atomic)
-                } catch {
-                    let alert = NSAlert()
-                    alert.messageText = "Failed to save settings."
-                    alert.alertStyle = .warning
-                    alert.runModal()
-                }
+                try? data.write(to: URL(fileURLWithPath: self.configPath), options: .atomic)
             }
             self.buildMenu()
+            NSApp.setActivationPolicy(bg ? .accessory : .regular)
         }
+        settingsView.onReload = { [weak self] in
+            self?.reloadConfig()
+        }
+        
+        let hostingController = NSHostingController(rootView: settingsView)
+        let window = NSWindow(contentViewController: hostingController)
+        window.title = "QuickAccess Settings"
+        window.setContentSize(NSSize(width: 700, height: 500))
+        window.styleMask = [.titled, .closable, .resizable]
+        window.minSize = NSSize(width: 600, height: 400)
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        settingsWindow = window
     }
 
     @objc func reloadConfig() {
@@ -1189,6 +307,343 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func quitApp() {
         NSApp.terminate(nil)
+    }
+}
+
+
+import SwiftUI
+
+// MARK: - SwiftUI Settings View
+
+struct SettingsView: View {
+    @Binding var sites: [Site]
+    @Binding var runInBackground: Bool
+    @State private var selectedIndex: Int? = nil
+    @State private var showDeleteAlert = false
+    @State private var showSavedFeedback = false
+    
+    var onSave: (([Site], Bool) -> Void)?
+    var onReload: (() -> Void)?
+    
+    var body: some View {
+        HSplitView {
+            // Left: Site list
+            VStack(spacing: 8) {
+                List(selection: $selectedIndex) {
+                    ForEach(sites.indices, id: \.self) { i in
+                        Text(sites[i].name)
+                            .tag(i)
+                    }
+                    .onMove { from, to in
+                        sites.move(fromOffsets: from, toOffset: to)
+                    }
+                }
+                .listStyle(.bordered)
+                .frame(minWidth: 160)
+                
+                HStack(spacing: 4) {
+                    Button("Add") { addSite() }
+                    Button("Remove") { showDeleteAlert = true }
+                        .disabled(selectedIndex == nil)
+                }
+                .padding(.bottom, 8)
+            }
+            .frame(width: 180)
+            
+            // Right: Site config
+            VStack(alignment: .leading, spacing: 0) {
+                if let idx = selectedIndex, idx < sites.count {
+                    SiteConfigView(site: $sites[idx])
+                } else {
+                    Spacer()
+                    Text("Select a site to configure")
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity)
+                    Spacer()
+                }
+                
+                Divider().padding(.vertical, 8)
+                
+                // Bottom bar
+                HStack {
+                    Toggle("Run in Background", isOn: $runInBackground)
+                        .toggleStyle(.checkbox)
+                        .font(.system(size: 11))
+                    
+                    Spacer()
+                    
+                    Button("Import") { importConfig() }
+                    Button("Export") { exportConfig() }
+                    Button("Reload") { onReload?() }
+                    
+                    Button(showSavedFeedback ? "Saved ✓" : "Save") { save() }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Color(red: 234/255, green: 88/255, blue: 12/255))
+                }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 8)
+            }
+        }
+        .frame(minWidth: 700, minHeight: 500)
+        .alert("Delete site?", isPresented: $showDeleteAlert) {
+            Button("Delete", role: .destructive) { removeSite() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            if let idx = selectedIndex, idx < sites.count {
+                Text("This will remove \"\(sites[idx].name)\".")
+            }
+        }
+    }
+    
+    private func addSite() {
+        sites.append(Site(name: "New Site", url: "https://", width: Defaults.defaultWidth, height: Defaults.defaultHeight, x: Defaults.defaultX, y: Defaults.defaultY))
+        selectedIndex = sites.count - 1
+    }
+    
+    private func removeSite() {
+        guard let idx = selectedIndex, idx < sites.count else { return }
+        sites.remove(at: idx)
+        selectedIndex = sites.isEmpty ? nil : min(idx, sites.count - 1)
+    }
+    
+    private func save() {
+        onSave?(sites, runInBackground)
+        showSavedFeedback = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { showSavedFeedback = false }
+    }
+    
+    private func exportConfig() {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "quickaccess.json"
+        panel.allowedContentTypes = [.json]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let configPath = NSString(string: "~/.quickaccess.json").expandingTildeInPath
+        try? FileManager.default.copyItem(at: URL(fileURLWithPath: configPath), to: url)
+    }
+    
+    private func importConfig() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let data = try Data(contentsOf: url)
+            let config = try JSONDecoder().decode(Config.self, from: data)
+            let configPath = NSString(string: "~/.quickaccess.json").expandingTildeInPath
+            try data.write(to: URL(fileURLWithPath: configPath), options: .atomic)
+            sites = config.sites
+            runInBackground = config.runInBackground
+            onReload?()
+        } catch {
+            // silent
+        }
+    }
+}
+
+// MARK: - Site Configuration Panel
+
+struct SiteConfigView: View {
+    @Binding var site: Site
+    @State private var layoutSelection = 0
+    @State private var sizeSelection = 0
+    
+    private let layoutOptions = ["Custom", "Center", "Left Half", "Right Half", "Top Half", "Bottom Half", "Top-Left", "Top-Right", "Bottom-Left", "Bottom-Right"]
+    private let sizeOptions = ["Custom", "Tiny (400×200)", "Mini (600×300)", "Medium (800×500)", "Large (1000×700)", "XL (1200×800)", "Wide (1000×400)", "Tall (500×800)", "Full (1400×900)"]
+    private let sizes: [(Int, Int)] = [(400,200), (600,300), (800,500), (1000,700), (1200,800), (1000,400), (500,800), (1400,900)]
+    
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Name & URL
+                Group {
+                    LabeledField("Name") {
+                        TextField("Site name", text: $site.name)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    LabeledField("URL") {
+                        TextField("https://", text: $site.url)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                }
+                
+                Divider()
+                
+                // Layout & Size
+                Group {
+                    LabeledField("Layout") {
+                        Picker("", selection: $layoutSelection) {
+                            ForEach(0..<layoutOptions.count, id: \.self) { i in
+                                Text(layoutOptions[i]).tag(i)
+                            }
+                        }
+                        .labelsHidden()
+                        .onChange(of: layoutSelection) { applyLayout() }
+                    }
+                    
+                    LabeledField("Size") {
+                        Picker("", selection: $sizeSelection) {
+                            ForEach(0..<sizeOptions.count, id: \.self) { i in
+                                Text(sizeOptions[i]).tag(i)
+                            }
+                        }
+                        .labelsHidden()
+                        .onChange(of: sizeSelection) { applySize() }
+                    }
+                }
+                
+                Divider()
+                
+                // Dimensions
+                HStack(spacing: 12) {
+                    LabeledField("Width") {
+                        TextField("", value: $site.width, format: .number)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 80)
+                    }
+                    LabeledField("Height") {
+                        TextField("", value: $site.height, format: .number)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 80)
+                    }
+                }
+                
+                HStack(spacing: 12) {
+                    LabeledField("X") {
+                        TextField("", value: $site.x, format: .number)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 80)
+                    }
+                    LabeledField("Y") {
+                        TextField("", value: $site.y, format: .number)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 80)
+                    }
+                    
+                    Button("⊹ Center") { centerXY() }
+                        .buttonStyle(.bordered)
+                }
+                
+                // Minimap
+                MinimapSwiftUI(site: site)
+                    .frame(height: 80)
+                    .frame(maxWidth: .infinity)
+                
+                Spacer()
+                
+                // Uninstall
+                HStack {
+                    Spacer()
+                    Button("Uninstall App") { uninstall() }
+                        .foregroundColor(.red)
+                        .font(.system(size: 11))
+                }
+            }
+            .padding(16)
+        }
+    }
+    
+    private func centerXY() {
+        guard let screen = NSScreen.main else { return }
+        let screenW = Int(screen.frame.width)
+        let screenH = Int(screen.frame.height)
+        site.x = (screenW - site.width) / 2
+        site.y = (screenH - site.height) / 2
+    }
+    
+    private func applyLayout() {
+        guard let screen = NSScreen.main else { return }
+        let screenW = Int(screen.frame.width)
+        let screenH = Int(screen.frame.height)
+        switch layoutSelection {
+        case 1: centerXY()
+        case 2: site.width = screenW/2; site.height = screenH; site.x = 0; site.y = 0
+        case 3: site.width = screenW/2; site.height = screenH; site.x = screenW/2; site.y = 0
+        case 4: site.width = screenW; site.height = screenH/2; site.x = 0; site.y = 0
+        case 5: site.width = screenW; site.height = screenH/2; site.x = 0; site.y = screenH/2
+        case 6: site.width = screenW/2; site.height = screenH/2; site.x = 0; site.y = 0
+        case 7: site.width = screenW/2; site.height = screenH/2; site.x = screenW/2; site.y = 0
+        case 8: site.width = screenW/2; site.height = screenH/2; site.x = 0; site.y = screenH/2
+        case 9: site.width = screenW/2; site.height = screenH/2; site.x = screenW/2; site.y = screenH/2
+        default: break
+        }
+    }
+    
+    private func applySize() {
+        guard sizeSelection > 0 else { return }
+        let (w, h) = sizes[sizeSelection - 1]
+        site.width = w
+        site.height = h
+        if layoutSelection == 1 { centerXY() }
+    }
+    
+    private func uninstall() {
+        let alert = NSAlert()
+        alert.messageText = "Uninstall QuickAccess?"
+        alert.informativeText = "This will remove the app, settings, and login item."
+        alert.addButton(withTitle: "Uninstall")
+        alert.addButton(withTitle: "Cancel")
+        alert.alertStyle = .critical
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        if #available(macOS 13.0, *) { try? SMAppService.mainApp.unregister() }
+        let configPath = NSString(string: "~/.quickaccess.json").expandingTildeInPath
+        try? FileManager.default.removeItem(atPath: configPath)
+        NSWorkspace.shared.recycle([URL(fileURLWithPath: Bundle.main.bundlePath)]) { _, _ in
+            NSApp.terminate(nil)
+        }
+    }
+}
+
+// MARK: - Helper Views
+
+struct LabeledField<Content: View>: View {
+    let label: String
+    let content: Content
+    
+    init(_ label: String, @ViewBuilder content: () -> Content) {
+        self.label = label
+        self.content = content()
+    }
+    
+    var body: some View {
+        HStack {
+            Text(label)
+                .frame(width: 50, alignment: .trailing)
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+            content
+        }
+    }
+}
+
+struct MinimapSwiftUI: View {
+    let site: Site
+    
+    var body: some View {
+        GeometryReader { geo in
+            let screen = NSScreen.main ?? NSScreen.screens[0]
+            let screenW = screen.frame.width
+            let screenH = screen.frame.height
+            let scale = min(geo.size.width / screenW, geo.size.height / screenH)
+            let mapW = screenW * scale
+            let mapH = screenH * scale
+            let offsetX = (geo.size.width - mapW) / 2
+            
+            ZStack(alignment: .topLeading) {
+                // Screen
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color(.windowBackgroundColor))
+                    .frame(width: mapW, height: mapH)
+                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.gray.opacity(0.3)))
+                    .offset(x: offsetX)
+                
+                // Site window
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.orange.opacity(0.3))
+                    .overlay(RoundedRectangle(cornerRadius: 2).stroke(Color.orange))
+                    .frame(width: CGFloat(site.width) * scale, height: CGFloat(site.height) * scale)
+                    .offset(x: offsetX + CGFloat(site.x) * scale, y: CGFloat(site.y) * scale)
+            }
+        }
     }
 }
 
