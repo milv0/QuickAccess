@@ -444,9 +444,9 @@ struct WelcomeView: View {
             .buttonStyle(.borderedProminent)
             .tint(Color(red: 234/255, green: 88/255, blue: 12/255))
             .padding(.horizontal, 40)
-            .padding(.bottom, 24)
+            .padding(.bottom, 40)
         }
-        .frame(width: 500, height: 400)
+        .frame(width: 500, height: 440)
     }
 }
 
