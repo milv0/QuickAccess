@@ -92,7 +92,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 let alert = NSAlert()
                 alert.messageText = "Welcome to QuickAccess! ⚡"
-                alert.informativeText = "1. Add your favorite sites in Settings\n2. Set window size & position\n3. Click a site from the menubar to launch\n\nTip: Allow Chrome automation when prompted for window resizing to work."
+                alert.informativeText = "1. Add sites in Settings (Name + URL)\n2. Set window size, then click ⊹ Center to auto-position\n3. Use Layout/Size presets for quick setup\n4. Click a site from the menubar ⚡ to launch\n\nTip: Allow Chrome automation when prompted."
                 alert.alertStyle = .informational
                 alert.addButton(withTitle: "Open Settings")
                 alert.runModal()
