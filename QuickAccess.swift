@@ -314,13 +314,18 @@ import SwiftUI
 class SettingsViewModel: ObservableObject {
     @Published var sites: [Site]
     @Published var runInBackground: Bool
-    let originalSites: [Site]
-    let originalBg: Bool
+    @Published var originalSites: [Site]
+    @Published var originalBg: Bool
     var onSave: (([Site], Bool) -> Void)?
     var onReload: (() -> Void)?
     
     var hasChanges: Bool {
         sites != originalSites || runInBackground != originalBg
+    }
+    
+    func markSaved() {
+        originalSites = sites
+        originalBg = runInBackground
     }
     
     init(sites: [Site], runInBackground: Bool) {
@@ -421,6 +426,7 @@ struct SettingsView: View {
     
     private func save() {
         vm.onSave?(vm.sites, vm.runInBackground)
+        vm.markSaved()
         showSavedFeedback = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { showSavedFeedback = false }
     }
