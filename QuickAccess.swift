@@ -238,6 +238,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             end repeat
             delay \(retryInterval)
           end repeat
+          -- Fallback: resize the most recent window
+          if (count of windows) > 0 then
+            set bounds of front window to {\(bounds)}
+          end if
         end tell
         """
 
