@@ -12,7 +12,7 @@ A macOS menubar app that launches websites in clean, standalone Chrome windows.
 
 - ⚡ **Menubar Resident** — One click to launch any site
 - 🪟 **Standalone Windows** — Chrome --app mode, no address bar
-- 📐 **Custom Window Sizing** — Set width, height, x, y per site
+- 📐 **Custom Window Sizing** — Set width, height, x, y per site (built-in display)
 - 🎯 **Layout Presets** — Center, half, quarter placement
 - 📏 **Size Presets** — Tiny to Full, quick selection
 - 🎯 **Center Button** — Auto-center with one click
