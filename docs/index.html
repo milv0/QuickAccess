@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickAccess — macOS Menubar App</title>
+  <meta name="description" content="Launch websites in Chrome app mode with custom window sizing. Fast, clean, distraction-free.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, sans-serif; color: #111; background: #f8f9fa; }
+    .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+    /* Hero */
+    .hero { min-height: 80vh; display: flex; align-items: center; justify-content: center; text-align: center; }
+    .hero h1 { font-size: 3.5rem; font-weight: 700; margin-bottom: 12px; }
+    .hero p { font-size: 1.1rem; color: #555; max-width: 500px; margin: 0 auto 24px; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; background: #f3f0ff; color: #7c3aed; margin-bottom: 16px; }
+    .cta { display: inline-block; padding: 12px 28px; background: #111; color: #fff; border-radius: 24px; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: background 0.2s; }
+    .cta:hover { background: #333; }
+
+    /* Features */
+    .features { padding: 80px 0; }
+    .features h2 { font-size: 2rem; font-weight: 700; text-align: center; margin-bottom: 40px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .card { background: #fff; border: 1px solid rgba(0,0,0,0.05); border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .card .icon { font-size: 1.5rem; margin-bottom: 8px; }
+    .card h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
+    .card p { font-size: 0.8rem; color: #666; }
+
+    /* Install */
+    .install { padding: 80px 0; text-align: center; }
+    .install h2 { font-size: 2rem; font-weight: 700; margin-bottom: 16px; }
+    .install p { color: #555; margin-bottom: 24px; }
+    .code { background: #1a1a2e; color: #e0e0e0; padding: 16px 24px; border-radius: 12px; font-family: monospace; font-size: 0.85rem; display: inline-block; text-align: left; }
+
+    /* Footer */
+    footer { padding: 40px 0; text-align: center; font-size: 0.75rem; color: #999; border-top: 1px solid #eee; }
+    footer a { color: #666; text-decoration: none; }
+    footer a:hover { color: #111; }
+
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 2.5rem; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<section class="hero">
+  <div>
+    <div class="badge">⚡ macOS Menubar App</div>
+    <h1>QuickAccess</h1>
+    <p>Launch websites in Chrome app mode with custom window sizing. Fast, clean, distraction-free.</p>
+    <a href="https://github.com/milv0/QuickAccess" class="cta">View on GitHub →</a>
+  </div>
+</section>
+
+<section class="features">
+  <div class="container">
+    <h2>Features</h2>
+    <div class="grid">
+      <div class="card"><div class="icon">⚡</div><h3>Menubar App</h3><p>One click to launch any site from the menubar</p></div>
+      <div class="card"><div class="icon">🪟</div><h3>App Mode</h3><p>Chrome --app mode, no address bar, clean window</p></div>
+      <div class="card"><div class="icon">📐</div><h3>Custom Sizing</h3><p>Set exact width, height, x, y per site</p></div>
+      <div class="card"><div class="icon">🎯</div><h3>Layout Presets</h3><p>Center, half, quarter — one click placement</p></div>
+      <div class="card"><div class="icon">📦</div><h3>Import / Export</h3><p>Share settings with others via JSON</p></div>
+      <div class="card"><div class="icon">🚀</div><h3>Launch at Login</h3><p>Auto-start on macOS login</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="install">
+  <div class="container">
+    <h2>Install</h2>
+    <p>Download the zip, unzip, and run. That's it.</p>
+    <div class="code">
+      xattr -cr /path/to/QuickAccess.app<br>
+      open QuickAccess.app
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>Made by <a href="mailto:uqwe00@gmail.com">Mingyu</a> · <a href="https://github.com/milv0/QuickAccess">GitHub</a></p>
+    <p style="margin-top: 8px;">© 2026 QuickAccess. MIT License.</p>
+  </div>
+</footer>
+
+</body>
+</html>
