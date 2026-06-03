@@ -2,12 +2,12 @@
 set -e
 echo "⚡ Installing QuickAccess..."
 cd /tmp
-curl -sL https://milv0.github.io/QuickAccess/QuickAccess.zip -o QuickAccess.zip
-unzip -qo QuickAccess.zip
+curl -sL https://milv0.github.io/QuickAccess/QuickAccess-v2.1.1.zip -o QuickAccess-v2.1.1.zip
+unzip -qo QuickAccess-v2.1.1.zip
 xattr -cr QuickAccess.app
 rm -rf /Applications/QuickAccess.app
 mv QuickAccess.app /Applications/
-rm -f QuickAccess.zip
+rm -f QuickAccess-v2.1.1.zip
 echo "✅ Installed to /Applications/QuickAccess.app"
 sleep 1
 echo "🚀 Launching..."
