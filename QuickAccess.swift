@@ -24,6 +24,11 @@ enum Defaults {
     static let domainRegex = try? NSRegularExpression(pattern: "^[a-zA-Z0-9._-]+$")
 }
 
+// Built-in display helper — always use MacBook screen regardless of external monitors
+var builtInScreen: NSScreen {
+    NSScreen.screens.first { $0.localizedName.contains("Built") } ?? NSScreen.main ?? NSScreen.screens[0]
+}
+
 // MARK: - Data Models for config persistence
 
 struct Site: Codable, Equatable {
@@ -594,7 +599,7 @@ struct SiteConfigView: View {
     
     private func detectPresets() {
         suppressOnChange = true
-        guard let screen = NSScreen.main else { suppressOnChange = false; return }
+        let screen = builtInScreen
         let screenW = Int(screen.frame.width)
         let screenH = Int(screen.frame.height)
         
@@ -627,7 +632,7 @@ struct SiteConfigView: View {
     }
     
     private func centerXY() {
-        guard let screen = NSScreen.main else { return }
+        let screen = builtInScreen
         var s = site
         s.x = (Int(screen.frame.width) - s.width) / 2
         s.y = (Int(screen.frame.height) - s.height) / 2
@@ -637,7 +642,7 @@ struct SiteConfigView: View {
     }
     
     private func applyLayout() {
-        guard let screen = NSScreen.main else { return }
+        let screen = builtInScreen
         let screenW = Int(screen.frame.width)
         let screenH = Int(screen.frame.height)
         var s = site
@@ -663,7 +668,7 @@ struct SiteConfigView: View {
         s.width = w
         s.height = h
         if layoutSelection == 1 {
-            guard let screen = NSScreen.main else { site = s; return }
+            let screen = builtInScreen
             s.x = (Int(screen.frame.width) - w) / 2
             s.y = (Int(screen.frame.height) - h) / 2
         }
@@ -717,7 +722,7 @@ struct MinimapSwiftUI: View {
     
     var body: some View {
         GeometryReader { geo in
-            let screen = NSScreen.main ?? NSScreen.screens[0]
+            let screen = builtInScreen
             let screenW = screen.frame.width
             let screenH = screen.frame.height
             let scale = min(geo.size.width / screenW, geo.size.height / screenH)
