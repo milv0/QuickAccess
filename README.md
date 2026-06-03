@@ -35,7 +35,7 @@ curl -sL https://milv0.github.io/QuickAccess/install.sh | bash
 ```
 
 **Or manually:**
-1. Download [QuickAccess-v2.2.2.zip](https://milv0.github.io/QuickAccess/QuickAccess-v2.2.2.zip)
+1. Download [QuickAccess-v2.2.3.zip](https://milv0.github.io/QuickAccess/QuickAccess-v2.2.3.zip)
 2. Unzip → folder contains `QuickAccess.app` + `install.sh`
 3. Double-click `install.sh` (or right-click → Open) to install
 

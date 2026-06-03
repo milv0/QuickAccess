@@ -12,7 +12,7 @@ import ServiceManagement
 import SwiftUI
 
 enum Defaults {
-    static let appVersion = "2.2.2"
+    static let appVersion = "2.2.3"
     static let defaultWidth = 800
     static let defaultHeight = 600
     static let defaultX = 100
@@ -91,9 +91,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // First launch: show welcome guide + open settings
-        let hasLaunched = UserDefaults.standard.bool(forKey: "hasLaunchedBefore")
-        if !hasLaunched {
-            UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
+        let guideDisabled = UserDefaults.standard.bool(forKey: "guideDisabled")
+        if !guideDisabled {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 self.showWelcomeWindow()
             }
@@ -396,6 +395,7 @@ class SettingsViewModel: ObservableObject {
 struct WelcomeView: View {
     var onOpenSettings: () -> Void
     @Environment(\.dismiss) var dismiss
+    @State private var dontShowAgain = false
 
     var body: some View {
         VStack(spacing: 24) {
@@ -418,7 +418,15 @@ struct WelcomeView: View {
 
             Spacer()
 
+            Toggle("Don't show this again", isOn: $dontShowAgain)
+                .toggleStyle(.checkbox)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+
             Button(action: {
+                if dontShowAgain {
+                    UserDefaults.standard.set(true, forKey: "guideDisabled")
+                }
                 dismiss()
                 onOpenSettings()
             }) {
@@ -432,7 +440,7 @@ struct WelcomeView: View {
             .padding(.horizontal, 40)
             .padding(.bottom, 24)
         }
-        .frame(width: 500, height: 380)
+        .frame(width: 500, height: 400)
     }
 }
 
