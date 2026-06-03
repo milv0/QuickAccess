@@ -453,14 +453,6 @@ class SettingsWindowController: NSObject, NSTableViewDataSource, NSTableViewDele
         centerBtn.target = self
         centerBtn.action = #selector(centerButtonClicked)
         boxContent.addSubview(centerBtn)
-
-        let grabBtn = NSButton(frame: NSRect(x: fieldX + 88, y: y, width: 100, height: 24))
-        grabBtn.title = "⊙ Grab Position"
-        grabBtn.bezelStyle = .rounded
-        grabBtn.font = NSFont.systemFont(ofSize: 11)
-        grabBtn.target = self
-        grabBtn.action = #selector(grabPosition)
-        boxContent.addSubview(grabBtn)
         y -= 24
 
         // Minimap preview
@@ -581,56 +573,6 @@ class SettingsWindowController: NSObject, NSTableViewDataSource, NSTableViewDele
         saveBtn?.isEnabled = true
     }
 
-    @objc func grabPosition() {
-        let row = tableView.selectedRow
-        guard row >= 0 else {
-            let alert = NSAlert()
-            alert.messageText = "Please select a site first."
-            alert.runModal()
-            return
-        }
-        let site = sites[row]
-        guard let domain = URL(string: site.url)?.host, !domain.isEmpty else { return }
-
-        let script = """
-        tell application "Google Chrome"
-          repeat with w in windows
-            if URL of active tab of w contains "\(domain)" then
-              set b to bounds of w
-              return (item 1 of b as text) & "," & (item 2 of b as text) & "," & (item 3 of b as text) & "," & (item 4 of b as text)
-            end if
-          end repeat
-        end tell
-        return ""
-        """
-        let task = Process()
-        let pipe = Pipe()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        task.arguments = ["-e", script]
-        task.standardOutput = pipe
-        do {
-            try task.run()
-            task.waitUntilExit()
-            let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            let parts = output.split(separator: ",").compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
-            guard parts.count == 4 else {
-                let alert = NSAlert()
-                alert.messageText = "Could not find an open Chrome window for this site."
-                alert.runModal()
-                return
-            }
-            let x = parts[0], y = parts[1], x2 = parts[2], y2 = parts[3]
-            widthField.stringValue = "\(x2 - x)"
-            heightField.stringValue = "\(y2 - y)"
-            xField.stringValue = "\(x)"
-            yField.stringValue = "\(y)"
-            updatePlaceholders()
-            updateMinimap()
-            saveBtn?.isEnabled = true
-        } catch {
-            NSLog("[QuickAccess] Grab position failed: %@", error.localizedDescription)
-        }
-    }
 
     @objc func layoutChanged(_ sender: NSPopUpButton) {
         saveBtn?.isEnabled = true
