@@ -36,6 +36,11 @@ curl -sL https://milv0.github.io/QuickAccess/install.sh | bash
 1. Download `QuickAccess.zip`
 2. Unzip and run `install.sh` inside
 
+**Uninstall:**
+```bash
+curl -sL https://milv0.github.io/QuickAccess/uninstall.sh | bash
+```
+
 ## Usage
 
 1. Click ⚡ in the menubar
