@@ -1,14 +1,14 @@
 #!/bin/bash
 set -e
-echo "⚡ Installing QuickAccess..."
+VERSION="2.2.6"
+echo "⚡ Installing QuickAccess v$VERSION..."
 cd /tmp
-curl -sL https://milv0.github.io/QuickAccess/QuickAccess-v2.2.6.zip -o QuickAccess-v2.2.6.zip
-unzip -qo QuickAccess-v2.2.6.zip
+curl -sL https://milv0.github.io/QuickAccess/QuickAccess-v$VERSION.zip -o QuickAccess.zip
+unzip -qo QuickAccess.zip
 xattr -cr QuickAccess.app
 rm -rf /Applications/QuickAccess.app
 mv QuickAccess.app /Applications/
-rm -f QuickAccess-v2.2.6.zip
-echo "✅ Installed to /Applications/QuickAccess.app"
-sleep 1
+rm -f QuickAccess.zip
+echo "✅ QuickAccess v$VERSION installed to /Applications/"
 echo "🚀 Launching..."
 open /Applications/QuickAccess.app
