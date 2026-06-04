@@ -472,6 +472,7 @@ struct SettingsView: View {
     @ObservedObject var vm: SettingsViewModel
     @State private var selectedIndex: Int? = nil
     @State private var showDeleteAlert = false
+    @State private var showGuide = false
     
     var body: some View {
         HSplitView {
@@ -493,6 +494,10 @@ struct SettingsView: View {
                     Button("Add") { addSite() }
                     Button("Remove") { showDeleteAlert = true }
                         .disabled(selectedIndex == nil)
+                    Spacer()
+                    Button("?") { showGuide = true }
+                        .font(.system(size: 12, weight: .bold))
+                        .help("User Guide")
                 }
                 .padding(.bottom, 8)
             }
@@ -541,6 +546,30 @@ struct SettingsView: View {
             if let idx = selectedIndex, idx < vm.sites.count {
                 Text("This will remove \"\(vm.sites[idx].name)\".")
             }
+        }
+        .sheet(isPresented: $showGuide) {
+            VStack(spacing: 16) {
+                Text("User Guide ⚡")
+                    .font(.system(size: 18, weight: .bold))
+                    .padding(.top, 20)
+                VStack(alignment: .leading, spacing: 10) {
+                    GuideRow(icon: "cursorarrow.click.2", text: "Click ⚡ in menubar → select a site")
+                    GuideRow(icon: "plus.circle", text: "Settings → add sites (Name + URL)")
+                    GuideRow(icon: "arrow.up.left.and.arrow.down.right", text: "Set Width/Height, click ⊹ Center")
+                    GuideRow(icon: "rectangle.grid.2x2", text: "Use Layout/Size presets")
+                    GuideRow(icon: "square.and.arrow.up", text: "Import/Export to share settings")
+                    GuideRow(icon: "power", text: "Launch at Login for auto-start")
+                    GuideRow(icon: "display", text: "Positions are built-in display only")
+                    GuideRow(icon: "checkmark.shield", text: "Allow Chrome automation when prompted")
+                }
+                .padding(.horizontal, 24)
+                Spacer()
+                Button("Close") { showGuide = false }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color(red: 234/255, green: 88/255, blue: 12/255))
+                    .padding(.bottom, 20)
+            }
+            .frame(width: 360, height: 340)
         }
     }
     
