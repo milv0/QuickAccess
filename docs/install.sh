@@ -3,7 +3,7 @@ set -e
 VERSION="2.2.8"
 echo "⚡ Installing QuickAccess v$VERSION..."
 cd /tmp
-curl -sL https://milv0.github.io/QuickAccess/QuickAccess-v$VERSION.zip -o QuickAccess.zip
+curl -sL https://milv0.github.io/quickaccess-app/QuickAccess-v$VERSION.zip -o QuickAccess.zip
 unzip -qo QuickAccess.zip
 xattr -cr QuickAccess.app
 rm -rf /Applications/QuickAccess.app
