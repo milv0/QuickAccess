@@ -497,10 +497,13 @@ struct SettingsView: View {
                     Button("Add") { addSite() }
                     Button("Remove") { showDeleteAlert = true }
                         .disabled(selectedIndex == nil)
+                }
+                HStack(spacing: 4) {
                     Button("↑") { moveSiteUp() }
                         .disabled(selectedIndex == nil || selectedIndex == 0)
                     Button("↓") { moveSiteDown() }
                         .disabled(selectedIndex == nil || selectedIndex == vm.sites.count - 1)
+                    Spacer()
                     Button("?") { showGuide = true }
                         .font(.system(size: 11, weight: .bold))
                         .help("User Guide")
