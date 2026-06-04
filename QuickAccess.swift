@@ -196,7 +196,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showGuide() {
         let alert = NSAlert()
         alert.messageText = "QuickAccess User Guide ⚡"
-        alert.informativeText = "1. Click ⚡ in the menubar → select a site to launch\n2. Settings → add sites (Name + URL)\n3. Set Width/Height, then click ⊹ Center to auto-position\n4. Use Layout/Size presets for quick setup\n5. Import/Export to share settings with others\n6. Launch at Login for auto-start\n\n• All positions are relative to the built-in display\n• Allow Chrome automation when prompted"
+        alert.informativeText = "1. Click ⚡ in the menubar → select a site to launch\n\n2. Settings → add sites (Name + URL)\n\n3. Set Width/Height, then click ⊹ Center to auto-position\n\n4. Use Layout/Size presets for quick setup\n\n5. Import/Export to share settings with others\n\n6. Launch at Login for auto-start\n\n• All positions are relative to the built-in display\n• Allow Chrome automation when prompted"
         alert.alertStyle = .informational
         alert.addButton(withTitle: "OK")
         alert.runModal()
