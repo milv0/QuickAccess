@@ -246,7 +246,13 @@ struct SettingsView: View {
             vm.runInBackground = config.runInBackground
             vm.alwaysCenter = config.alwaysCenter
             vm.onReload?()
-        } catch {}
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = "Failed to import config."
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
     }
 }
 
@@ -545,7 +551,7 @@ struct MinimapSwiftUI: View {
                 }
 
                 let targetScreen = displayName.flatMap { name in screens.first { $0.localizedName == name } }
-                    ?? NSScreen.main ?? screens[0]
+                    ?? NSScreen.main ?? screens.first!
                 let tFrame = targetScreen.frame
                 let screenLocalX = (tFrame.origin.x - minX) * scale
                 let screenLocalY = (maxY - tFrame.origin.y - tFrame.height) * scale

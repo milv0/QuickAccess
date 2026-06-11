@@ -16,12 +16,15 @@ public func chromeBoundsString(x: Int, y: Int, width: Int, height: Int) -> Strin
 public var builtInScreen: NSScreen {
     let mouseLocation = NSEvent.mouseLocation
     return NSScreen.screens.first { NSMouseInRect(mouseLocation, $0.frame, false) }
-        ?? NSScreen.main ?? NSScreen.screens[0]
+        ?? NSScreen.main
+        ?? NSScreen.screens.first!
 }
 
 public func targetScreen(for site: Site) -> NSScreen {
     if let name = site.displayName {
-        return NSScreen.screens.first { $0.localizedName == name } ?? NSScreen.main ?? NSScreen.screens[0]
+        return NSScreen.screens.first { $0.localizedName == name }
+            ?? NSScreen.main
+            ?? NSScreen.screens.first!
     }
     return builtInScreen
 }

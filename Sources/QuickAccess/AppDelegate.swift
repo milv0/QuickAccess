@@ -147,7 +147,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let domain = rawDomain
 
         let screen = targetScreen(for: site)
-        let primaryH = NSScreen.screens[0].frame.height
+        let primaryH = NSScreen.screens.first?.frame.height ?? NSScreen.main?.frame.height ?? 1080
         let origin = screen.frame.origin
         let screenOffsetX = Int(origin.x)
         let screenOffsetY = Int(primaryH - origin.y - screen.frame.height)
