@@ -86,6 +86,30 @@ Stored at `~/.quickaccess.json`:
 }
 ```
 
+## Development
+
+```bash
+# Open in Xcode (Cmd+R to run, Cmd+U to test)
+open QuickAccess.xcodeproj
+
+# CLI build & test
+xcodebuild -scheme QuickAccess -destination "platform=macOS" build
+xcodebuild -scheme QuickAccess -destination "platform=macOS" test
+
+# Regenerate .xcodeproj after editing project.yml
+xcodegen generate
+```
+
+### Project Structure
+
+```
+Sources/
+├── QuickAccess/          ← App target (AppDelegate, Views, entry point)
+└── QuickAccessCore/      ← Core logic (Models, Validation, ViewModel)
+Tests/
+└── QuickAccessCoreTests/ ← 21 tests (Swift Testing)
+```
+
 ## Author
 
 **Mingyu**
