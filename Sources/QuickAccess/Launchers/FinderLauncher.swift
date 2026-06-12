@@ -8,9 +8,10 @@ enum FinderLauncher {
     ///   - path: 열 폴더의 POSIX 경로 (틸드 확장 완료된 상태)
     ///   - bounds: AppleScript bounds (left, top, right, bottom) — 좌상단 원점 좌표계
     static func openAndResize(path: String, bounds: (Int, Int, Int, Int)) {
-        // 경로에 작은따옴표가 있으면 AppleScript 문자열 이스케이프
-        let posixPath = path.replacingOccurrences(of: "'", with: "'\\''")
-
+        // AppleScript 큰따옴표 문자열 내 이스케이프: \ → \\, " → \"
+        let posixPath = path
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
         // AppleScript: Finder 활성화 → 폴더 열기 → 윈도우 크기 설정 (한 번에 실행)
         let script = """
         tell application "Finder"
