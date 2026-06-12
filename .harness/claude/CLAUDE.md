@@ -6,6 +6,13 @@
 
 ```
 QuickAccess/
+├── .harness/                         ← AI 어시스턴트 harness (SSOT)
+│   ├── shared/rules/                 ← 공유 규칙 (Claude + Kiro 공통)
+│   ├── claude/                       ← Claude Code 전용 (CLAUDE.md, commands/)
+│   └── kiro/                         ← Kiro 전용
+├── .claude → .harness/claude          (symlink)
+├── .kiro → .harness/kiro              (symlink)
+├── .github/workflows/release.yml     ← 릴리스 자동화 (workflow_dispatch)
 ├── QuickAccess.xcodeproj/            ← Xcode 프로젝트 (xcodegen 으로 생성)
 ├── project.yml                       ← xcodegen 설정 파일 (타겟, 스킴 정의)
 ├── Sources/
@@ -15,15 +22,14 @@ QuickAccess/
 │   │   └── Views.swift               ← SwiftUI 뷰 (Settings, Welcome, Minimap)
 │   └── QuickAccessCore/              ← 핵심 로직 (테스트 대상)
 │       ├── Models.swift              ← Site, Config, Defaults
-│       ├── Validation.swift          ← isValidDomain, chromeBoundsString
+│       ├── Validation.swift          ← isValidDomain, chromeBoundsString, targetScreen
 │       └── SettingsViewModel.swift   ← SettingsViewModel (ObservableObject)
 ├── Tests/QuickAccessCoreTests/       ← 테스트 (Cmd+U)
 │   ├── ModelTests.swift
 │   ├── ValidationTests.swift
 │   └── SettingsViewModelTests.swift
 ├── Resources/AppIcon.icns            ← 앱 아이콘
-├── build.sh                          ← 배포용 빌드 스크립트
-└── docs/                             ← GitHub Pages 배포 자산
+└── assets/icons/                     ← 원본 SVG 아이콘
 ```
 
 ## 빌드 & 실행 & 테스트
@@ -42,9 +48,19 @@ xcodebuild -scheme QuickAccess -configuration Debug -destination "platform=macOS
 xcodegen generate
 ```
 
+## 릴리스
+
+GitHub Actions `workflow_dispatch` 방식. 매 커밋에 실행되지 않음.
+
+```
+GitHub Actions 탭 → Release → Run workflow → 버전 입력 (e.g. 2.3.0)
+```
+
+자동 수행: 버전 업데이트 → 빌드 → 테스트 → zip → GitHub Release → 배포 레포 업데이트
+
 ## Rules 참조
 
-상세 규약은 `.claude/rules/` 하위 파일을 SSOT 로 따른다:
+규칙 원본은 `.harness/shared/rules/` 에 있으며, `.claude/rules/` 는 symlink.
 
 | 파일 | 내용 |
 |------|------|

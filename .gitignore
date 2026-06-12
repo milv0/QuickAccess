@@ -1,9 +1,5 @@
-# Compiled binary
-QuickAccess.app/Contents/MacOS/QuickAccess
-
 # Distribution zip
 *.zip
-!docs/*.zip
 
 # SPM build output
 .build/
