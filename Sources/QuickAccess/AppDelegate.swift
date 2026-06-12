@@ -24,6 +24,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             button.image = NSImage(systemSymbolName: "bolt.fill", accessibilityDescription: "QuickAccess")
         }
         buildMenu()
+        registerGlobalHotkeys()
 
         DispatchQueue.global().async {
             let task = Process()
@@ -38,6 +39,141 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 self.showWelcomeWindow()
             }
+        }
+    }
+
+    // MARK: - Global Hotkeys
+
+    private func registerGlobalHotkeys() {
+        // Monitor key events when app is not focused
+        NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            self?.handleHotkey(event)
+        }
+        // Monitor key events when app is focused
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            if self?.handleHotkey(event) == true { return nil }
+            return event
+        }
+    }
+
+    @discardableResult
+    private func handleHotkey(_ event: NSEvent) -> Bool {
+        guard event.modifierFlags.contains(.option) else { return false }
+
+        // ⌥Q — toggle menu
+        if event.keyCode == 12 { // Q key
+            DispatchQueue.main.async {
+                self.statusItem.button?.performClick(nil)
+            }
+            return true
+        }
+
+        // ⌥1~9 — launch site by index
+        let numberKeyCodes: [UInt16: Int] = [
+            18: 0, 19: 1, 20: 2, 21: 3, 23: 4,
+            22: 5, 26: 6, 28: 7, 25: 8,
+        ]
+        if let index = numberKeyCodes[event.keyCode],
+           index < config.sites.count {
+            DispatchQueue.main.async {
+                self.launchSite(self.config.sites[index])
+            }
+            return true
+        }
+
+        return false
+    }
+
+    func launchSite(_ site: Site) {
+        if !FileManager.default.fileExists(atPath: "/Applications/Google Chrome.app") {
+            let alert = NSAlert()
+            alert.messageText = "Google Chrome is not installed."
+            alert.alertStyle = .warning
+            alert.runModal()
+            return
+        }
+
+        let rawDomain = URL(string: site.url)?.host ?? ""
+        guard isValidDomain(rawDomain) else {
+            NSLog("[QuickAccess] Invalid domain: %@", rawDomain)
+            return
+        }
+        let domain = rawDomain
+
+        let screen = targetScreen(for: site)
+        let primaryH = NSScreen.screens.first?.frame.height ?? NSScreen.main?.frame.height ?? 1080
+        let origin = screen.frame.origin
+        let screenOffsetX = Int(origin.x)
+        let screenOffsetY = Int(primaryH - origin.y - screen.frame.height)
+        let bw = site.width
+        let bh = site.height
+        let bx: Int
+        let by: Int
+        if config.alwaysCenter {
+            bx = screenOffsetX + (Int(screen.frame.width) - bw) / 2
+            by = screenOffsetY + (Int(screen.frame.height) - bh) / 2
+        } else {
+            bx = site.x + screenOffsetX
+            by = site.y + screenOffsetY
+        }
+        let bounds = "\(bx), \(by), \(bx + bw), \(by + bh)"
+
+        let retries = Defaults.resizeRetries
+        let retryInterval = Defaults.retryInterval
+        let script = """
+        tell application "Google Chrome"
+          repeat \(retries) times
+            repeat with w in windows
+              set tabUrl to URL of active tab of w
+              if tabUrl contains "\(domain)" then
+                set bounds of w to {\(bounds)}
+                return
+              end if
+            end repeat
+            delay \(retryInterval)
+          end repeat
+          if (count of windows) > 0 then
+            set bounds of front window to {\(bounds)}
+          end if
+        end tell
+        """
+
+        let chromeRunning = NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == "com.google.Chrome" }
+
+        let openTask = Process()
+        openTask.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        openTask.arguments = ["-na", "Google Chrome", "--args", "--app=\(site.url)"]
+        do {
+            try openTask.run()
+        } catch {
+            DispatchQueue.main.async {
+                let alert = NSAlert()
+                alert.messageText = "Failed to launch Chrome."
+                alert.informativeText = error.localizedDescription
+                alert.alertStyle = .critical
+                alert.runModal()
+            }
+            return
+        }
+
+        let delays: [Double] = chromeRunning ? [0.5, 0.8, 1.2, 2.0] : [1.0, 2.0, 3.5, 5.0]
+        resizeQueue.async {
+            for d in delays {
+                Thread.sleep(forTimeInterval: d)
+                let scriptTask = Process()
+                let pipe = Pipe()
+                scriptTask.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+                scriptTask.arguments = ["-e", script]
+                scriptTask.standardError = pipe
+                do {
+                    try scriptTask.run()
+                    scriptTask.waitUntilExit()
+                    if scriptTask.terminationStatus == 0 { return }
+                } catch {
+                    continue
+                }
+            }
+            NSLog("[QuickAccess] All resize attempts failed")
         }
     }
 
@@ -130,97 +266,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc func openSite(_ sender: NSMenuItem) {
         guard let site = sender.representedObject as? Site else { return }
-
-        if !FileManager.default.fileExists(atPath: "/Applications/Google Chrome.app") {
-            let alert = NSAlert()
-            alert.messageText = "Google Chrome is not installed."
-            alert.alertStyle = .warning
-            alert.runModal()
-            return
-        }
-
-        let rawDomain = URL(string: site.url)?.host ?? ""
-        guard isValidDomain(rawDomain) else {
-            NSLog("[QuickAccess] Invalid domain: %@", rawDomain)
-            return
-        }
-        let domain = rawDomain
-
-        let screen = targetScreen(for: site)
-        let primaryH = NSScreen.screens.first?.frame.height ?? NSScreen.main?.frame.height ?? 1080
-        let origin = screen.frame.origin
-        let screenOffsetX = Int(origin.x)
-        let screenOffsetY = Int(primaryH - origin.y - screen.frame.height)
-        let bw = site.width
-        let bh = site.height
-        let bx: Int
-        let by: Int
-        if config.alwaysCenter {
-            bx = screenOffsetX + (Int(screen.frame.width) - bw) / 2
-            by = screenOffsetY + (Int(screen.frame.height) - bh) / 2
-        } else {
-            bx = site.x + screenOffsetX
-            by = site.y + screenOffsetY
-        }
-        let bounds = "\(bx), \(by), \(bx + bw), \(by + bh)"
-
-        let retries = Defaults.resizeRetries
-        let retryInterval = Defaults.retryInterval
-        let script = """
-        tell application "Google Chrome"
-          repeat \(retries) times
-            repeat with w in windows
-              set tabUrl to URL of active tab of w
-              if tabUrl contains "\(domain)" then
-                set bounds of w to {\(bounds)}
-                return
-              end if
-            end repeat
-            delay \(retryInterval)
-          end repeat
-          if (count of windows) > 0 then
-            set bounds of front window to {\(bounds)}
-          end if
-        end tell
-        """
-
-        let chromeRunning = NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == "com.google.Chrome" }
-
-        let openTask = Process()
-        openTask.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        openTask.arguments = ["-na", "Google Chrome", "--args", "--app=\(site.url)"]
-        do {
-            try openTask.run()
-        } catch {
-            DispatchQueue.main.async {
-                let alert = NSAlert()
-                alert.messageText = "Failed to launch Chrome."
-                alert.informativeText = error.localizedDescription
-                alert.alertStyle = .critical
-                alert.runModal()
-            }
-            return
-        }
-
-        let delays: [Double] = chromeRunning ? [0.5, 0.8, 1.2, 2.0] : [1.0, 2.0, 3.5, 5.0]
-        resizeQueue.async {
-            for d in delays {
-                Thread.sleep(forTimeInterval: d)
-                let scriptTask = Process()
-                let pipe = Pipe()
-                scriptTask.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-                scriptTask.arguments = ["-e", script]
-                scriptTask.standardError = pipe
-                do {
-                    try scriptTask.run()
-                    scriptTask.waitUntilExit()
-                    if scriptTask.terminationStatus == 0 { return }
-                } catch {
-                    continue
-                }
-            }
-            NSLog("[QuickAccess] All resize attempts failed")
-        }
+        launchSite(site)
     }
 
     // MARK: - Settings
