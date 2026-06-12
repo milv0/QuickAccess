@@ -1,7 +1,7 @@
 import Foundation
 
 public enum Defaults {
-    public static let appVersion = "2.2.8"
+    public static let appVersion = "2.2.9"
     public static let defaultWidth = 800
     public static let defaultHeight = 600
     public static let defaultX = 100
