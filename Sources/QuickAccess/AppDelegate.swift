@@ -162,6 +162,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             switch site.launchType {
             case .url: iconName = "bolt.fill"
             case .app: iconName = "app.fill"
+            case .finder: iconName = "folder.fill"
             case .shell: iconName = "terminal.fill"
             }
             item.image = NSImage(systemSymbolName: iconName, accessibilityDescription: nil)
@@ -205,6 +206,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         switch site.launchType {
         case .url: launchURL(site)
         case .app: launchApp(site)
+        case .finder: launchFinder(site)
         case .shell: launchShell(site)
         }
     }
@@ -354,6 +356,41 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             AXIsProcessTrustedWithOptions(options)
         }
         return false
+    }
+
+    private func launchFinder(_ site: Site) {
+        guard let path = site.folderPath, !path.isEmpty else {
+            showAlert(message: "No folder path configured for \"\(site.name)\".")
+            return
+        }
+        let expandedPath = NSString(string: path).expandingTildeInPath
+        guard FileManager.default.fileExists(atPath: expandedPath) else {
+            showAlert(message: "Folder not found: \(path)")
+            return
+        }
+
+        let screen = targetScreen(for: site)
+        let bounds = centeredBounds(for: site, on: screen)
+
+        FinderLauncher.openAndResize(path: expandedPath, bounds: (bounds.left, bounds.top, bounds.right, bounds.bottom))
+
+        // MARK: Legacy resize approach (kept for reference)
+        // NSWorkspace.shared.open(URL(fileURLWithPath: expandedPath))
+        // let resizeScript = """
+        // tell application "Finder"
+        //     if (count of windows) > 0 then
+        //         set bounds of front window to {\(bx), \(by), \(bx + bw), \(by + bh)}
+        //     end if
+        // end tell
+        // """
+        // resizeQueue.async {
+        //     Thread.sleep(forTimeInterval: 0.1)
+        //     let scriptTask = Process()
+        //     scriptTask.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        //     scriptTask.arguments = ["-e", resizeScript]
+        //     try? scriptTask.run()
+        //     scriptTask.waitUntilExit()
+        // }
     }
 
     private func launchShell(_ site: Site) {

@@ -16,6 +16,7 @@ public enum Defaults {
 public enum LaunchType: String, Codable, CaseIterable {
     case url
     case app
+    case finder
     case shell
 }
 
@@ -30,12 +31,11 @@ public struct Site: Codable, Equatable {
     public var launchType: LaunchType
     public var appPath: String?
     public var script: String?
+    public var folderPath: String?
 
-    public init(
-        name: String, url: String, width: Int, height: Int, x: Int, y: Int,
-        displayName: String? = nil, launchType: LaunchType = .url,
-        appPath: String? = nil, script: String? = nil
-    ) {
+    public init(name: String, url: String, width: Int, height: Int, x: Int, y: Int,
+                displayName: String? = nil, launchType: LaunchType = .url,
+                appPath: String? = nil, script: String? = nil, folderPath: String? = nil) {
         self.name = name
         self.url = url
         self.width = width
@@ -46,6 +46,7 @@ public struct Site: Codable, Equatable {
         self.launchType = launchType
         self.appPath = appPath
         self.script = script
+        self.folderPath = folderPath
     }
 
     public init(from decoder: Decoder) throws {
@@ -60,6 +61,7 @@ public struct Site: Codable, Equatable {
         launchType = try container.decodeIfPresent(LaunchType.self, forKey: .launchType) ?? .url
         appPath = try container.decodeIfPresent(String.self, forKey: .appPath)
         script = try container.decodeIfPresent(String.self, forKey: .script)
+        folderPath = try container.decodeIfPresent(String.self, forKey: .folderPath)
     }
 }
 
