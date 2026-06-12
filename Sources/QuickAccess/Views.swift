@@ -323,6 +323,11 @@ struct SettingsView: View {
             vm.sites = config.sites
             vm.runInBackground = config.runInBackground
             vm.onReload?()
+            let alert = NSAlert()
+            alert.messageText = "Import successful"
+            alert.informativeText = "\(config.sites.count) site(s) loaded."
+            alert.alertStyle = .informational
+            alert.runModal()
         } catch {
             let alert = NSAlert()
             alert.messageText = "Invalid JSON."
@@ -341,6 +346,11 @@ struct SettingsView: View {
             vm.sites = config.sites
             vm.runInBackground = config.runInBackground
             vm.onReload?()
+            let alert = NSAlert()
+            alert.messageText = "Import successful"
+            alert.informativeText = "\(config.sites.count) site(s) loaded."
+            alert.alertStyle = .informational
+            alert.runModal()
         } catch {
             let alert = NSAlert()
             alert.messageText = "Failed to import config."
