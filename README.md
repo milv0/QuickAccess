@@ -59,6 +59,20 @@ Each site can target a specific monitor or use **Auto** (opens on whichever scre
 
 Enable **Always Center** in Settings to automatically center all site windows on their target display. Only set the window size — positioning is handled automatically.
 
+### Keyboard Shortcuts
+
+Launch sites without touching the mouse:
+
+| Shortcut | Action |
+|----------|--------|
+| ⌥Q | Open the menubar menu |
+| ⌥1 | Launch 1st site |
+| ⌥2 | Launch 2nd site |
+| ... | ... |
+| ⌥9 | Launch 9th site |
+
+**Setup:** System Settings → Privacy & Security → Accessibility → add QuickAccess and enable.
+
 ### Share Settings
 
 - Settings → **Export** → save as JSON

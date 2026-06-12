@@ -24,7 +24,8 @@ struct WelcomeView: View {
                 GuideRow(icon: "arrow.up.left.and.arrow.down.right", text: "Set window size, then click ⊹ Center")
                 GuideRow(icon: "rectangle.grid.2x2", text: "Use Layout/Size presets for quick setup")
                 GuideRow(icon: "cursorarrow.click.2", text: "Click a site from the menubar to launch")
-                GuideRow(icon: "checkmark.shield", text: "Allow Chrome automation when prompted")
+                GuideRow(icon: "keyboard", text: "⌥Q opens menu, ⌥1~9 launches sites directly")
+                GuideRow(icon: "checkmark.shield", text: "Allow Accessibility for keyboard shortcuts")
             }
             .padding(.horizontal, 24)
 
@@ -182,7 +183,8 @@ struct SettingsView: View {
                     GuideRow(icon: "square.and.arrow.up", text: "Import/Export to share settings")
                     GuideRow(icon: "power", text: "Launch at Login for auto-start")
                     GuideRow(icon: "display", text: "Always Center keeps windows centered")
-                    GuideRow(icon: "checkmark.shield", text: "Allow Chrome automation when prompted")
+                    GuideRow(icon: "keyboard", text: "⌥Q opens menu, ⌥1~9 launches sites")
+                    GuideRow(icon: "checkmark.shield", text: "Allow Accessibility for shortcuts")
                 }
                 .padding(.horizontal, 24)
                 Spacer()

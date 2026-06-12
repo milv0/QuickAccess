@@ -24,6 +24,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             button.image = NSImage(systemSymbolName: "bolt.fill", accessibilityDescription: "QuickAccess")
         }
         buildMenu()
+        registerGlobalHotkeys()
 
         DispatchQueue.global().async {
             let task = Process()
@@ -39,6 +40,47 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 self.showWelcomeWindow()
             }
         }
+    }
+
+    // MARK: - Global Hotkeys
+
+    private func registerGlobalHotkeys() {
+        NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            self?.handleHotkey(event)
+        }
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            if self?.handleHotkey(event) == true { return nil }
+            return event
+        }
+    }
+
+    @discardableResult
+    private func handleHotkey(_ event: NSEvent) -> Bool {
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard flags == .option else { return false }
+
+        // ⌥Q — open menu
+        if event.keyCode == 12 {
+            DispatchQueue.main.async {
+                guard let button = self.statusItem.button else { return }
+                self.statusItem.menu?.popUp(positioning: nil, at: .zero, in: button)
+            }
+            return true
+        }
+
+        // ⌥1~9 — launch site directly
+        let numberKeyCodes: [UInt16: Int] = [
+            18: 0, 19: 1, 20: 2, 21: 3, 23: 4,
+            22: 5, 26: 6, 28: 7, 25: 8,
+        ]
+        if let index = numberKeyCodes[event.keyCode],
+           index < config.sites.count {
+            DispatchQueue.main.async {
+                self.launchSite(self.config.sites[index])
+            }
+            return true
+        }
+        return false
     }
 
     func showWelcomeWindow() {
@@ -97,8 +139,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func buildMenu() {
         let menu = NSMenu()
-        for site in config.sites {
-            let item = NSMenuItem(title: site.name, action: #selector(openSite(_:)), keyEquivalent: "")
+        for (i, site) in config.sites.enumerated() {
+            let keyEquiv = i < 9 ? "\(i + 1)" : ""
+            let item = NSMenuItem(title: site.name, action: #selector(openSite(_:)), keyEquivalent: keyEquiv)
+            if !keyEquiv.isEmpty {
+                item.keyEquivalentModifierMask = .option
+            }
             item.representedObject = site
             item.target = self
             menu.addItem(item)
@@ -130,7 +176,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc func openSite(_ sender: NSMenuItem) {
         guard let site = sender.representedObject as? Site else { return }
+        launchSite(site)
+    }
 
+    func launchSite(_ site: Site) {
         if !FileManager.default.fileExists(atPath: "/Applications/Google Chrome.app") {
             let alert = NSAlert()
             alert.messageText = "Google Chrome is not installed."
