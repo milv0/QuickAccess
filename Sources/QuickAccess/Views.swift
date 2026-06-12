@@ -273,6 +273,8 @@ struct SettingsView: View {
             return site.displayName == nil ? "display.2" : "display"
         case .app:
             return "app.fill"
+        case .finder:
+            return "folder.fill"
         case .shell:
             return "terminal.fill"
         }
@@ -381,9 +383,10 @@ struct SiteConfigView: View {
 
                 LabeledField("Type") {
                     Picker("", selection: $site.launchType) {
-                        Text("URL").tag(LaunchType.url)
-                        Text("App").tag(LaunchType.app)
-                        Text("Shell").tag(LaunchType.shell)
+                        Label("URL", systemImage: "bolt.fill").tag(LaunchType.url)
+                        Label("App", systemImage: "app.fill").tag(LaunchType.app)
+                        Label("Finder", systemImage: "folder.fill").tag(LaunchType.finder)
+                        Label("Shell", systemImage: "terminal.fill").tag(LaunchType.shell)
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
@@ -396,6 +399,8 @@ struct SiteConfigView: View {
                     urlConfigSection
                 case .app:
                     appConfigSection
+                case .finder:
+                    finderConfigSection
                 case .shell:
                     shellConfigSection
                 }
@@ -486,6 +491,22 @@ struct SiteConfigView: View {
         }
     }
 
+    private var finderConfigSection: some View {
+        Group {
+            LabeledField("Folder") {
+                TextField("~/Documents", text: Binding(
+                    get: { site.folderPath ?? "" },
+                    set: { site.folderPath = $0 }
+                ))
+                .textFieldStyle(.roundedBorder)
+            }
+
+            Divider()
+
+            windowConfigSection
+        }
+    }
+
     private var shellConfigSection: some View {
         Group {
             VStack(alignment: .leading, spacing: 8) {
@@ -516,20 +537,24 @@ struct SiteConfigView: View {
     }
 
     private func detectSizePreset() {
-        suppressOnChange = true
-        var detectedSize = 0
-        for (i, sz) in sizes.enumerated() {
-            if site.width == sz.0 && site.height == sz.1 { detectedSize = i + 1; break }
+        DispatchQueue.main.async {
+            suppressOnChange = true
+            var detectedSize = 0
+            for (i, sz) in sizes.enumerated() {
+                if site.width == sz.0 && site.height == sz.1 { detectedSize = i + 1; break }
+            }
+            sizeSelection = detectedSize
+            suppressOnChange = false
         }
-        sizeSelection = detectedSize
-        suppressOnChange = false
     }
 
     private func applySize() {
         guard sizeSelection > 0 else { return }
         let (w, h) = sizes[sizeSelection - 1]
-        site.width = w
-        site.height = h
+        DispatchQueue.main.async {
+            site.width = w
+            site.height = h
+        }
     }
 }
 
