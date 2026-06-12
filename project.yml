@@ -21,6 +21,7 @@ targets:
         MARKETING_VERSION: "2.2.9"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: true
+        CODE_SIGN_IDENTITY: "-"
         INFOPLIST_KEY_LSUIElement: true
         INFOPLIST_KEY_CFBundleDisplayName: QuickAccess
         INFOPLIST_KEY_NSHumanReadableCopyright: "© 2026 Mingyu"
@@ -38,6 +39,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mingyupark.QuickAccessTests
         GENERATE_INFOPLIST_FILE: true
+        CODE_SIGN_IDENTITY: "-"
         SWIFT_VERSION: "5.9"
         MACOSX_DEPLOYMENT_TARGET: "14.0"
 
