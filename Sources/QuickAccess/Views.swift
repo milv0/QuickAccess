@@ -186,7 +186,7 @@ struct SettingsView: View {
                     GuideRow(icon: "rectangle.grid.2x2", text: "Use Layout/Size presets")
                     GuideRow(icon: "square.and.arrow.up", text: "Import/Export to share settings")
                     GuideRow(icon: "power", text: "Launch at Login for auto-start")
-                    GuideRow(icon: "display", text: "Always Center keeps windows centered")
+                    GuideRow(icon: "display", text: "Windows are always centered on target display")
                     GuideRow(icon: "keyboard", text: "⌥Q opens menu, ⌥1~9 launches sites")
                     GuideRow(icon: "checkmark.shield", text: "Allow Accessibility for shortcuts")
                 }
@@ -322,7 +322,6 @@ struct SettingsView: View {
             try data.write(to: URL(fileURLWithPath: configPath), options: .atomic)
             vm.sites = config.sites
             vm.runInBackground = config.runInBackground
-            vm.alwaysCenter = config.alwaysCenter
             vm.onReload?()
         } catch {
             let alert = NSAlert()
@@ -341,7 +340,6 @@ struct SettingsView: View {
             try data.write(to: URL(fileURLWithPath: configPath), options: .atomic)
             vm.sites = config.sites
             vm.runInBackground = config.runInBackground
-            vm.alwaysCenter = config.alwaysCenter
             vm.onReload?()
         } catch {
             let alert = NSAlert()
