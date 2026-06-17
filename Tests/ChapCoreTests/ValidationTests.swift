@@ -1,6 +1,6 @@
 import Testing
 
-@testable import QuickAccess
+@testable import Chap
 
 @Suite("Domain Validation")
 struct DomainValidationTests {

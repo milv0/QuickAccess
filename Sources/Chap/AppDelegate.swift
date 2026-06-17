@@ -5,10 +5,10 @@ import SwiftUI
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var statusItem: NSStatusItem!
     var config: Config = Config(sites: [])
-    let configPath = NSString(string: "~/.quickaccess.json").expandingTildeInPath
+    let configPath = NSString(string: "~/.chap.json").expandingTildeInPath
     var settingsWindow: NSWindow?
     var settingsVM: SettingsViewModel?
-    let resizeQueue = DispatchQueue(label: "com.mingyupark.QuickAccess.resize")
+    let resizeQueue = DispatchQueue(label: "com.mingyupark.Chap.resize")
     private var menuIsOpen = false
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -16,6 +16,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        migrateConfigIfNeeded()
         copyDefaultConfigIfNeeded()
         loadConfig()
         NSApp.setActivationPolicy(config.runInBackground ? .accessory : .regular)
@@ -23,7 +24,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: 28)
         if let button = statusItem.button {
             button.image = NSImage(
-                systemSymbolName: "bolt.fill", accessibilityDescription: "QuickAccess")
+                systemSymbolName: "bolt.fill", accessibilityDescription: "Chap")
         }
         buildMenu()
         registerGlobalHotkeys()
@@ -111,7 +112,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 userInfo: Unmanaged.passUnretained(self).toOpaque()
             )
         else {
-            NSLog("[QuickAccess] Failed to create CGEvent tap — check Accessibility permission")
+            NSLog("[Chap] Failed to create CGEvent tap — check Accessibility permission")
             return
         }
 
@@ -139,6 +140,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     // MARK: - Config handling
 
+    // MARK: - Config migration
+
+    /// 기존 ~/.quickaccess.json → ~/.chap.json 마이그레이션
+    func migrateConfigIfNeeded() {
+        let oldPath = NSString(string: "~/.quickaccess.json").expandingTildeInPath
+        if FileManager.default.fileExists(atPath: oldPath) && !FileManager.default.fileExists(atPath: configPath) {
+            try? FileManager.default.moveItem(atPath: oldPath, toPath: configPath)
+            NSLog("[Chap] Migrated config from ~/.quickaccess.json to ~/.chap.json")
+        }
+    }
+
     func copyDefaultConfigIfNeeded() {
         if !FileManager.default.fileExists(atPath: configPath) {
             let defaultJSON = """
@@ -153,14 +165,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 try defaultJSON.write(toFile: configPath, atomically: true, encoding: .utf8)
             } catch {
                 NSLog(
-                    "[QuickAccess] Failed to write default config: %@", error.localizedDescription)
+                    "[Chap] Failed to write default config: %@", error.localizedDescription)
             }
         }
     }
 
     func loadConfig() {
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: configPath)) else {
-            NSLog("[QuickAccess] Failed to read config file at %@", configPath)
+            NSLog("[Chap] Failed to read config file at %@", configPath)
             return
         }
         do {
@@ -203,7 +215,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         settings.target = self
         menu.addItem(settings)
         let about = NSMenuItem(
-            title: "About QuickAccess", action: #selector(showAbout), keyEquivalent: "")
+            title: "About Chap", action: #selector(showAbout), keyEquivalent: "")
         about.target = self
         menu.addItem(about)
         menu.addItem(.separator())
@@ -215,7 +227,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc func showAbout() {
         let alert = NSAlert()
-        alert.messageText = "QuickAccess"
+        alert.messageText = "Chap"
         alert.informativeText = "Version \(Defaults.appVersion)\n\nMade by Mingyu"
         alert.alertStyle = .informational
         alert.addButton(withTitle: "OK")
@@ -288,7 +300,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let settingsView = SettingsView(vm: vm)
         let hostingController = NSHostingController(rootView: settingsView)
         let window = NSWindow(contentViewController: hostingController)
-        window.title = "QuickAccess Settings"
+        window.title = "Chap Settings"
         window.setContentSize(NSSize(width: 700, height: 500))
         window.styleMask = [.titled, .closable, .resizable]
         window.minSize = NSSize(width: 600, height: 400)

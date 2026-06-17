@@ -16,6 +16,6 @@ DerivedData/
 # macOS system files
 .DS_Store
 
-QuickAccess.zip
-QuickAccess.json
+Chap.zip
+Chap.json
 *.app

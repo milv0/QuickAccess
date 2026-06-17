@@ -1,8 +1,8 @@
-QuickAccess Project Structure
+Chap Project Structure
 =============================
 
 Sources/
-├── QuickAccess/                    ← 앱 타겟 (UI + 실행 로직)
+├── Chap/                    ← 앱 타겟 (UI + 실행 로직)
 │   ├── main.swift                  ← 앱 진입점 (NSApplication 설정)
 │   ├── AppDelegate.swift           ← 라이프사이클, 메뉴바, 핫키, 런처 라우팅
 │   ├── Views.swift                 ← SwiftUI 뷰 (Settings, Welcome, SiteConfig, Minimap)
@@ -12,13 +12,13 @@ Sources/
 │       ├── FinderLauncher.swift    ← Finder 타입: 폴더 열기 + 리사이즈 (단일 AppleScript)
 │       └── ShellLauncher.swift     ← Shell 타입: 스크립트 실행 (리사이즈 없음)
 │
-└── QuickAccessCore/                ← 코어 로직 (UI 무의존, 테스트 대상)
+└── ChapCore/                ← 코어 로직 (UI 무의존, 테스트 대상)
     ├── Models.swift                ← 데이터 모델 (Site, Config, LaunchType, Defaults)
     ├── SettingsViewModel.swift     ← 설정 상태 관리 (hasChanges, onSave)
     └── Validation.swift            ← 도메인 검증, 좌표 계산 (centeredBounds, targetScreen)
 
 Tests/
-└── QuickAccessCoreTests/           ← 단위 테스트 (23개)
+└── ChapCoreTests/           ← 단위 테스트 (23개)
     ├── ModelTests.swift            ← Site/Config Codable 테스트
     ├── SettingsViewModelTests.swift ← ViewModel 상태 전이 테스트
     └── ValidationTests.swift       ← 도메인 검증, bounds 계산 테스트
@@ -28,14 +28,14 @@ Resources/
 
 Config Files:
 ├── project.yml                     ← XcodeGen 프로젝트 정의
-├── QuickAccess.xcodeproj/          ← 생성된 Xcode 프로젝트 (xcodegen generate)
+├── Chap.xcodeproj/          ← 생성된 Xcode 프로젝트 (xcodegen generate)
 └── .harness/                       ← AI 어시스턴트 규칙 (공유 심링크 구조)
     ├── shared/rules/               ← 코딩 컨벤션 (SSOT)
     ├── claude/                     ← Claude Code 설정
     └── kiro/                       ← Kiro 설정
 
 Runtime:
-└── ~/.quickaccess.json             ← 사용자 설정 파일 (sites, alwaysCenter 등)
+└── ~/.chap.json             ← 사용자 설정 파일 (sites, alwaysCenter 등)
 
 
 Recent Changes (2026-06-12, by mingyupk)

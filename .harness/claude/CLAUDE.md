@@ -1,11 +1,11 @@
-# QuickAccess — Claude Code 작업 지침
+# Chap — Claude Code 작업 지침
 
 이 파일은 Claude Code 가 매 세션 자동 로드하는 프로젝트 지침이다.
 
 ## 프로젝트 구조
 
 ```
-QuickAccess/
+Chap/
 ├── .harness/                         ← AI 어시스턴트 harness (SSOT)
 │   ├── shared/rules/                 ← 공유 규칙 (Claude + Kiro 공통)
 │   ├── shared/hooks/                 ← 공유 훅 (swift-format.sh)
@@ -14,10 +14,10 @@ QuickAccess/
 ├── .claude → .harness/claude          (symlink)
 ├── .kiro → .harness/kiro              (symlink)
 ├── .github/workflows/release.yml     ← 릴리스 자동화 (workflow_dispatch)
-├── QuickAccess.xcodeproj/            ← Xcode 프로젝트 (xcodegen 으로 생성)
+├── Chap.xcodeproj/            ← Xcode 프로젝트 (xcodegen 으로 생성)
 ├── project.yml                       ← xcodegen 설정 파일 (타겟, 스킴 정의)
 ├── Sources/
-│   ├── QuickAccess/                  ← 앱 타겟 (Cmd+R 실행)
+│   ├── Chap/                  ← 앱 타겟 (Cmd+R 실행)
 │   │   ├── main.swift                ← NSApplication 엔트리포인트
 │   │   ├── AppDelegate.swift         ← 메뉴바, config I/O, 글로벌 핫키
 │   │   ├── Views.swift               ← SwiftUI 뷰 (Settings, Welcome, Minimap)
@@ -27,11 +27,11 @@ QuickAccess/
 │   │       ├── FinderLauncher.swift   ← Finder 폴더 열기 + bounds 설정
 │   │       ├── ShellLauncher.swift    ← 쉘 스크립트 실행
 │   │       └── LauncherUtils.swift    ← 공통 유틸 (retryResize, showAlert)
-│   └── QuickAccessCore/              ← 핵심 로직 (테스트 대상)
+│   └── ChapCore/              ← 핵심 로직 (테스트 대상)
 │       ├── Models.swift              ← LaunchType, Site, Config, Defaults
 │       ├── Validation.swift          ← isValidDomain, centeredBounds, targetScreen
 │       └── SettingsViewModel.swift   ← SettingsViewModel (ObservableObject)
-├── Tests/QuickAccessCoreTests/       ← 테스트 (Cmd+U)
+├── Tests/ChapCoreTests/       ← 테스트 (Cmd+U)
 │   ├── ModelTests.swift
 │   ├── ValidationTests.swift
 │   └── SettingsViewModelTests.swift
@@ -44,13 +44,13 @@ QuickAccess/
 
 ```bash
 # Xcode 에서 (권장)
-open QuickAccess.xcodeproj            # 프로젝트 열기
+open Chap.xcodeproj            # 프로젝트 열기
 # Cmd+R → 앱 실행 (.app 번들, 메뉴바 정상 동작)
 # Cmd+U → 테스트 실행
 
 # CLI 에서
-xcodebuild -scheme QuickAccess -configuration Debug -destination "platform=macOS" build
-xcodebuild -scheme QuickAccess -configuration Debug -destination "platform=macOS" test
+xcodebuild -scheme Chap -configuration Debug -destination "platform=macOS" build
+xcodebuild -scheme Chap -configuration Debug -destination "platform=macOS" test
 
 # project.yml 수정 후 xcodeproj 재생성
 xcodegen generate

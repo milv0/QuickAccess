@@ -35,10 +35,10 @@ enum FinderLauncher {
                 // 실패 시 에러 로깅 (사용자에게 alert 안 띄움 — Finder는 거의 실패 안 함)
                 if task.terminationStatus != 0 {
                     let err = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-                    NSLog("[QuickAccess] Finder resize failed: %@", err)
+                    NSLog("[Chap] Finder resize failed: %@", err)
                 }
             } catch {
-                NSLog("[QuickAccess] Failed to run Finder script: %@", error.localizedDescription)
+                NSLog("[Chap] Failed to run Finder script: %@", error.localizedDescription)
             }
         }
     }
