@@ -433,22 +433,14 @@ struct SiteConfigView: View {
         VStack(alignment: .trailing, spacing: 0) {
             HStack {
                 Spacer()
-                if isEditing {
-                    Button("Save") {
-                        isEditing = false
-                        onSave?()
+                Toggle("Edit", isOn: $isEditing)
+                    .toggleStyle(.switch)
+                    .font(.system(size: 12))
+                    .onChange(of: isEditing) { _, newValue in
+                        if !newValue {
+                            onSave?()
+                        }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Color(red: 234 / 255, green: 88 / 255, blue: 12 / 255))
-                    .keyboardShortcut(.return, modifiers: [])
-                } else {
-                    Button("Edit") {
-                        isEditing = true
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.gray)
-                    .keyboardShortcut("e", modifiers: .command)
-                }
             }
             .padding(.trailing, 16)
             .padding(.top, 8)
