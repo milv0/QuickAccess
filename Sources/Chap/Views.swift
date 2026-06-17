@@ -30,6 +30,7 @@ struct WelcomeView: View {
                 GuideRow(
                     icon: "cursorarrow.click.2", text: "Click a site from the menubar to launch")
                 GuideRow(icon: "keyboard", text: "⌥Q opens menu, ⌥1~9 launches sites directly")
+                GuideRow(icon: "keyboard", text: "⌘E edit, ⌘S/Enter save")
                 GuideRow(
                     icon: "checkmark.shield", text: "Allow Accessibility for keyboard shortcuts")
             }
@@ -71,6 +72,24 @@ struct WelcomeView: View {
     }
 }
 
+struct SidebarRow: View {
+    let index: Int
+    let site: Site
+    let icon: String
+    var body: some View {
+        HStack(spacing: 4) {
+            Text("\(index + 1)")
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundColor(.secondary.opacity(0.6))
+                .frame(width: 12)
+            Image(systemName: icon)
+                .font(.system(size: 9))
+                .foregroundColor(.secondary)
+            Text(site.name)
+        }
+    }
+}
+
 struct GuideRow: View {
     let icon: String
     let text: String
@@ -95,19 +114,15 @@ struct SettingsView: View {
     @State private var showPasteJSON = false
     @State private var pasteJSONText = ""
     @State private var dropTargeted = false
+    @State private var isEditing = false
 
     var body: some View {
         HSplitView {
             VStack(spacing: 8) {
                 List(selection: $selectedIndex) {
                     ForEach(vm.sites.indices, id: \.self) { i in
-                        HStack(spacing: 4) {
-                            Image(systemName: sidebarIcon(for: vm.sites[i]))
-                                .font(.system(size: 9))
-                                .foregroundColor(.secondary)
-                            Text(vm.sites[i].name)
-                        }
-                        .tag(i)
+                        SidebarRow(index: i, site: vm.sites[i], icon: sidebarIcon(for: vm.sites[i]))
+                            .tag(i)
                     }
                     .onMove { from, to in
                         vm.sites.move(fromOffsets: from, toOffset: to)
@@ -133,7 +148,7 @@ struct SettingsView: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 if let idx = selectedIndex, idx < vm.sites.count {
-                    SiteConfigView(site: $vm.sites[idx], onSave: { save() })
+                    SiteConfigView(site: $vm.sites[idx], isEditing: $isEditing, onSave: { save() })
                 } else {
                     Spacer()
                     Text("Select a site to configure")
@@ -165,17 +180,21 @@ struct SettingsView: View {
                     }
                     Button("Reload") { vm.onReload?() }
 
-                    // Cmd+S shortcut (hidden, triggers save)
-                    Button("") { save() }
-                        .keyboardShortcut("s", modifiers: .command)
-                        .frame(width: 0, height: 0)
-                        .opacity(0)
+                    // Cmd+S: save + 편집 종료
+                    Button("") {
+                        save()
+                        isEditing = false
+                    }
+                    .keyboardShortcut("s", modifiers: .command)
+                    .frame(width: 0, height: 0)
+                    .opacity(0)
                 }
                 .padding(.horizontal, 12)
                 .padding(.bottom, 8)
             }
         }
         .frame(minWidth: 700, minHeight: 500)
+        .background(siteSelectionShortcuts)
         .alert("Delete site?", isPresented: $showDeleteAlert) {
             Button("Delete", role: .destructive) { removeSite() }
             Button("Cancel", role: .cancel) {}
@@ -201,6 +220,7 @@ struct SettingsView: View {
                     GuideRow(icon: "power", text: "Launch at Login for auto-start")
                     GuideRow(icon: "display", text: "Windows are always centered on target display")
                     GuideRow(icon: "keyboard", text: "⌥Q opens menu, ⌥1~9 launches sites")
+                    GuideRow(icon: "keyboard", text: "⌘E edit, ⌘S/Enter save")
                     GuideRow(icon: "checkmark.shield", text: "Allow Accessibility for shortcuts")
                 }
                 .padding(.horizontal, 24)
@@ -255,6 +275,17 @@ struct SettingsView: View {
                     .padding(4)
                 : nil
         )
+    }
+
+    // ⌘1~9 로 사이트 선택 (설정 창 내부에서만 동작)
+    @ViewBuilder
+    private var siteSelectionShortcuts: some View {
+        ForEach(0..<min(9, vm.sites.count), id: \.self) { i in
+            Button("") { selectedIndex = i }
+                .keyboardShortcut(KeyEquivalent(Character("\(i + 1)")), modifiers: .command)
+                .frame(width: 0, height: 0)
+                .opacity(0)
+        }
     }
 
     private func addSite() {
@@ -383,9 +414,9 @@ struct SettingsView: View {
 
 struct SiteConfigView: View {
     @Binding var site: Site
+    @Binding var isEditing: Bool
     @State private var sizeSelection = 0
     @State private var suppressOnChange = false
-    @State private var isEditing = false
     var onSave: (() -> Void)?
 
     private let sizeOptions = [
@@ -401,26 +432,32 @@ struct SiteConfigView: View {
         VStack(alignment: .trailing, spacing: 0) {
             HStack {
                 Spacer()
-                Button(isEditing ? "Save" : "Edit") {
-                    if isEditing {
-                        // Save 동작: SettingsView의 save()를 트리거하기 위해 onSave 콜백 사용
+                if isEditing {
+                    Button("Save") {
                         isEditing = false
                         onSave?()
-                    } else {
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color(red: 234 / 255, green: 88 / 255, blue: 12 / 255))
+                    .keyboardShortcut(.return, modifiers: [])
+                } else {
+                    Button("Edit") {
                         isEditing = true
                     }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.gray)
+                    .keyboardShortcut("e", modifiers: .command)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(isEditing ? Color(red: 234 / 255, green: 88 / 255, blue: 12 / 255) : .gray)
-                .padding(.trailing, 16)
-                .padding(.top, 8)
             }
+            .padding(.trailing, 16)
+            .padding(.top, 8)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     LabeledField("Name") {
                         TextField("Site name", text: $site.name)
                             .textFieldStyle(.roundedBorder)
+                            .frame(maxWidth: 200)
                     }
 
                 LabeledField("Type") {
@@ -492,38 +529,37 @@ struct SiteConfigView: View {
     }
 
     private var windowConfigSection: some View {
-        Group {
-            LabeledField("Display") {
-                Picker(
-                    "",
-                    selection: Binding(
-                        get: { site.displayName ?? "Auto" },
-                        set: { site.displayName = $0 == "Auto" ? nil : $0 }
-                    )
-                ) {
-                    Text("Auto (cursor screen)").tag("Auto")
-                    ForEach(NSScreen.screens, id: \.localizedName) { screen in
-                        Text(screen.localizedName).tag(screen.localizedName)
+        HStack(alignment: .center, spacing: 20) {
+            // 왼쪽: 설정 필드
+            VStack(alignment: .leading, spacing: 14) {
+                LabeledField("Display") {
+                    Picker(
+                        "",
+                        selection: Binding(
+                            get: { site.displayName ?? "Auto" },
+                            set: { site.displayName = $0 == "Auto" ? nil : $0 }
+                        )
+                    ) {
+                        Text("Auto (cursor screen)").tag("Auto")
+                        ForEach(NSScreen.screens, id: \.localizedName) { screen in
+                            Text(screen.localizedName).tag(screen.localizedName)
+                        }
+                    }
+                    .labelsHidden()
+                }
+
+                LabeledField("Size") {
+                    Picker("", selection: $sizeSelection) {
+                        ForEach(0..<sizeOptions.count, id: \.self) { i in
+                            Text(sizeOptions[i]).tag(i)
+                        }
+                    }
+                    .labelsHidden()
+                    .onChange(of: sizeSelection) { _, _ in
+                        if !suppressOnChange { DispatchQueue.main.async { applySize() } }
                     }
                 }
-                .labelsHidden()
-            }
 
-            Divider()
-
-            LabeledField("Size") {
-                Picker("", selection: $sizeSelection) {
-                    ForEach(0..<sizeOptions.count, id: \.self) { i in
-                        Text(sizeOptions[i]).tag(i)
-                    }
-                }
-                .labelsHidden()
-                .onChange(of: sizeSelection) { _, _ in
-                    if !suppressOnChange { DispatchQueue.main.async { applySize() } }
-                }
-            }
-
-            HStack(spacing: 12) {
                 LabeledField("Width") {
                     TextField(
                         "",
@@ -534,6 +570,7 @@ struct SiteConfigView: View {
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 80)
                 }
+
                 LabeledField("Height") {
                     TextField(
                         "",
@@ -546,9 +583,9 @@ struct SiteConfigView: View {
                 }
             }
 
+            // 오른쪽: 미니맵
             MinimapSwiftUI(width: site.width, height: site.height, displayName: site.displayName)
-                .frame(height: 80)
-                .frame(maxWidth: .infinity)
+                .frame(width: 180, height: 120)
                 .id("\(site.width)-\(site.height)")
         }
     }
@@ -640,9 +677,9 @@ struct LabeledField<Content: View>: View {
     }
 
     var body: some View {
-        HStack {
+        HStack(alignment: .center) {
             Text(label)
-                .frame(width: 50, alignment: .trailing)
+                .frame(width: 60, alignment: .trailing)
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
             content
