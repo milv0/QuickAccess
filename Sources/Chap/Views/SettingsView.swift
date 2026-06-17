@@ -235,7 +235,7 @@ struct SettingsView: View {
             VStack(spacing: 10) {
                 CardSection {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("App Usage")
+                        Text("App Usage  ⌥")
                             .font(DS.headlineFont)
                             .foregroundColor(DS.textPrimary)
                         guideRow(icon: "cursorarrow.click.2", text: "Click menubar icon to select")
@@ -243,11 +243,12 @@ struct SettingsView: View {
                         guideRow(
                             icon: "checkmark.shield", text: "Allow Accessibility for shortcuts")
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 CardSection {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Settings")
+                        Text("Settings  ⌘")
                             .font(DS.headlineFont)
                             .foregroundColor(DS.textPrimary)
                         guideRow(icon: "plus.circle", text: "Add sites (Name + URL)")
@@ -255,6 +256,7 @@ struct SettingsView: View {
                         guideRow(icon: "square.and.arrow.down", text: "Drag .json to import")
                         guideRow(icon: "keyboard", text: "⌘E edit, ⌘S save, ⌘1~9 select")
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .padding(.horizontal, 24)
