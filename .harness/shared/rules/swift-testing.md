@@ -1,4 +1,4 @@
-# QuickAccess Testing Convention
+# Chap Testing Convention
 
 Swift Testing 프레임워크(`import Testing`) 기반. XCTest 가 아닌 `@Test`/`@Suite` 사용.
 
@@ -116,12 +116,12 @@ swift test --filter ModelTests  # 특정 Suite 만 실행
 import PackageDescription
 
 let package = Package(
-    name: "QuickAccess",
+    name: "Chap",
     platforms: [.macOS(.v14)],
     targets: [
-        .target(name: "QuickAccessCore", path: "Sources", exclude: ["main.swift"]),
-        .testTarget(name: "QuickAccessTests", dependencies: ["QuickAccessCore"], path: "Tests"),
-        .executableTarget(name: "QuickAccess", dependencies: ["QuickAccessCore"], path: "Sources", sources: ["main.swift"]),
+        .target(name: "ChapCore", path: "Sources", exclude: ["main.swift"]),
+        .testTarget(name: "ChapTests", dependencies: ["ChapCore"], path: "Tests"),
+        .executableTarget(name: "Chap", dependencies: ["ChapCore"], path: "Sources", sources: ["main.swift"]),
     ]
 )
 ```
@@ -132,7 +132,7 @@ let package = Package(
 - `Sources/Models.swift` — `Site`, `Config`
 - `Sources/SettingsViewModel.swift` — `SettingsViewModel`
 - `Sources/Validation.swift` — `isValidDomain(_:)`, `chromeBoundsString(...)`
-- `Sources/QuickAccess.swift` — AppDelegate, UI, entry point (테스트 대상 아님)
+- `Sources/Chap.swift` — AppDelegate, UI, entry point (테스트 대상 아님)
 
 순수 로직을 free function 또는 static method 로 추출하면 의존성 없이 테스트 가능:
 ```swift

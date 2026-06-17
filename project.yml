@@ -1,4 +1,4 @@
-name: QuickAccess
+name: Chap
 options:
   bundleIdPrefix: com.mingyupark
   deploymentTarget:
@@ -7,51 +7,51 @@ options:
   generateEmptyDirectories: false
 
 targets:
-  QuickAccess:
+  Chap:
     type: application
     platform: macOS
     sources:
-      - path: Sources/QuickAccess
-      - path: Sources/QuickAccessCore
+      - path: Sources/Chap
+      - path: Sources/ChapCore
     resources:
       - path: Resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.mingyupark.QuickAccess
+        PRODUCT_BUNDLE_IDENTIFIER: com.mingyupark.Chap
         MARKETING_VERSION: "2.2.9"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: true
         CODE_SIGN_IDENTITY: "-"
         INFOPLIST_KEY_LSUIElement: true
-        INFOPLIST_KEY_CFBundleDisplayName: QuickAccess
+        INFOPLIST_KEY_CFBundleDisplayName: Chap
         INFOPLIST_KEY_NSHumanReadableCopyright: "© 2026 Mingyu"
         SWIFT_VERSION: "5.9"
         MACOSX_DEPLOYMENT_TARGET: "14.0"
 
-  QuickAccessTests:
+  ChapTests:
     type: bundle.unit-test
     platform: macOS
     sources:
-      - path: Tests/QuickAccessCoreTests
+      - path: Tests/ChapCoreTests
     dependencies:
-      - target: QuickAccess
+      - target: Chap
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.mingyupark.QuickAccessTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.mingyupark.ChapTests
         GENERATE_INFOPLIST_FILE: true
         CODE_SIGN_IDENTITY: "-"
         SWIFT_VERSION: "5.9"
         MACOSX_DEPLOYMENT_TARGET: "14.0"
 
 schemes:
-  QuickAccess:
+  Chap:
     build:
       targets:
-        QuickAccess: all
-        QuickAccessTests: [test]
+        Chap: all
+        ChapTests: [test]
     run:
       config: Debug
     test:
       config: Debug
       targets:
-        - QuickAccessTests
+        - ChapTests

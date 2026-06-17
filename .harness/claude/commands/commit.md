@@ -39,7 +39,7 @@ allowed-tools: Bash, Read
 
 3. **빌드 검증** — Swift 소스 변경이 포함된 경우에만:
    ```bash
-   xcodebuild -project QuickAccess.xcodeproj -scheme QuickAccess -configuration Debug -destination "platform=macOS" build 2>&1 | tail -3
+   xcodebuild -project Chap.xcodeproj -scheme Chap -configuration Debug -destination "platform=macOS" build 2>&1 | tail -3
    ```
    - 실패하면 커밋 진행하지 않고 에러 보고 후 종료.
    - Swift 소스 변경이 없으면 (문서, 설정만 변경) 생략.

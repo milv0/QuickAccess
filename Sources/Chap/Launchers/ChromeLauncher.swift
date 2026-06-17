@@ -16,7 +16,7 @@ enum ChromeLauncher {
         // URL에서 도메인 추출 및 유효성 검증 (인젝션 방지)
         let rawDomain = URL(string: site.url)?.host ?? ""
         guard isValidDomain(rawDomain) else {
-            NSLog("[QuickAccess] Invalid domain: %@", rawDomain)
+            NSLog("[Chap] Invalid domain: %@", rawDomain)
             return
         }
 

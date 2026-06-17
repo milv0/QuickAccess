@@ -1,4 +1,4 @@
-# QuickAccess Commit Convention
+# Chap Commit Convention
 
 ## 1. 변경 파일 안전 검토 (커밋 전 항상)
 
@@ -44,9 +44,9 @@
 
 | 경로/영역 | scope |
 |-----------|-------|
-| `QuickAccess.swift` (AppDelegate, 핵심 로직) | `app` |
-| `QuickAccess.swift` (SwiftUI 뷰) | `ui` |
-| `QuickAccess.swift` (Config/Site 모델) | `model` |
+| `Chap.swift` (AppDelegate, 핵심 로직) | `app` |
+| `Chap.swift` (SwiftUI 뷰) | `ui` |
+| `Chap.swift` (Config/Site 모델) | `model` |
 | `build.sh`, `install.sh` | `build` |
 | `docs/`, `index.html` | `docs` |
 | `.claude/`, `CLAUDE.md` | `claude` |

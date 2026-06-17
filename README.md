@@ -1,4 +1,4 @@
-# QuickAccess
+# Chap
 
 A macOS menubar app that launches websites in clean, standalone Chrome windows.
 
@@ -32,17 +32,17 @@ A macOS menubar app that launches websites in clean, standalone Chrome windows.
 
 **One command:**
 ```bash
-curl -sL https://milv0.github.io/quickaccess-app/install.sh | bash
+curl -sL https://milv0.github.io/chap-app/install.sh | bash
 ```
 
 **Or manually:**
-1. Download [QuickAccess-v2.2.8.zip](https://milv0.github.io/quickaccess-app/QuickAccess-v2.2.8.zip)
-2. Unzip → folder contains `QuickAccess.app` + `install.sh`
+1. Download [Chap-v2.2.8.zip](https://milv0.github.io/chap-app/Chap-v2.2.8.zip)
+2. Unzip → folder contains `Chap.app` + `install.sh`
 3. Double-click `install.sh` (or right-click → Open) to install
 
 **Uninstall:**
 ```bash
-curl -sL https://milv0.github.io/quickaccess-app/uninstall.sh | bash
+curl -sL https://milv0.github.io/chap-app/uninstall.sh | bash
 ```
 
 ## Usage
@@ -72,7 +72,7 @@ Launch sites without touching the mouse:
 | ⌥9 | Launch 9th site |
 | ⌥, | Open Settings |
 
-**Setup:** System Settings → Privacy & Security → Accessibility → add QuickAccess and enable.
+**Setup:** System Settings → Privacy & Security → Accessibility → add Chap and enable.
 
 ### Share Settings
 
@@ -81,7 +81,7 @@ Launch sites without touching the mouse:
 
 ### Config File
 
-Stored at `~/.quickaccess.json`:
+Stored at `~/.chap.json`:
 
 ```json
 {
@@ -105,11 +105,11 @@ Stored at `~/.quickaccess.json`:
 
 ```bash
 # Open in Xcode (Cmd+R to run, Cmd+U to test)
-open QuickAccess.xcodeproj
+open Chap.xcodeproj
 
 # CLI build & test
-xcodebuild -scheme QuickAccess -destination "platform=macOS" build
-xcodebuild -scheme QuickAccess -destination "platform=macOS" test
+xcodebuild -scheme Chap -destination "platform=macOS" build
+xcodebuild -scheme Chap -destination "platform=macOS" test
 
 # Regenerate .xcodeproj after editing project.yml
 xcodegen generate
@@ -119,10 +119,10 @@ xcodegen generate
 
 ```
 Sources/
-├── QuickAccess/          ← App target (AppDelegate, Views, entry point)
-└── QuickAccessCore/      ← Core logic (Models, Validation, ViewModel)
+├── Chap/          ← App target (AppDelegate, Views, entry point)
+└── ChapCore/      ← Core logic (Models, Validation, ViewModel)
 Tests/
-└── QuickAccessCoreTests/ ← 21 tests (Swift Testing)
+└── ChapCoreTests/ ← 21 tests (Swift Testing)
 ```
 
 ## Author

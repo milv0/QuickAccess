@@ -37,7 +37,7 @@ enum LauncherUtils {
                     continue
                 }
             }
-            NSLog("[QuickAccess] All resize attempts failed for %@", label)
+            NSLog("[Chap] All resize attempts failed for %@", label)
         }
     }
 }

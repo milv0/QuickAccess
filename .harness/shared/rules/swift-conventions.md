@@ -1,4 +1,4 @@
-# QuickAccess Swift Conventions
+# Chap Swift Conventions
 
 본 프로젝트의 Swift 코딩 규약. Apple Swift API Design Guidelines, Google Swift Style Guide, Kodeco Style Guide 기반.
 

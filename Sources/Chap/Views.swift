@@ -17,7 +17,7 @@ struct WelcomeView: View {
             Text("⚡")
                 .font(.system(size: 50))
 
-            Text("Welcome to QuickAccess")
+            Text("Welcome to Chap")
                 .font(.system(size: 24, weight: .bold))
 
             VStack(alignment: .leading, spacing: 12) {
@@ -303,10 +303,10 @@ struct SettingsView: View {
 
     private func exportConfig() {
         let panel = NSSavePanel()
-        panel.nameFieldStringValue = "quickaccess.json"
+        panel.nameFieldStringValue = "chap.json"
         panel.allowedContentTypes = [.json]
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        let configPath = NSString(string: "~/.quickaccess.json").expandingTildeInPath
+        let configPath = NSString(string: "~/.chap.json").expandingTildeInPath
         try? FileManager.default.copyItem(at: URL(fileURLWithPath: configPath), to: url)
     }
 
@@ -318,7 +318,7 @@ struct SettingsView: View {
         do {
             let data = try Data(contentsOf: url)
             let config = try JSONDecoder().decode(Config.self, from: data)
-            let configPath = NSString(string: "~/.quickaccess.json").expandingTildeInPath
+            let configPath = NSString(string: "~/.chap.json").expandingTildeInPath
             try data.write(to: URL(fileURLWithPath: configPath), options: .atomic)
             vm.sites = config.sites
             vm.runInBackground = config.runInBackground
@@ -336,7 +336,7 @@ struct SettingsView: View {
         guard let data = jsonString.data(using: .utf8) else { return }
         do {
             let config = try JSONDecoder().decode(Config.self, from: data)
-            let configPath = NSString(string: "~/.quickaccess.json").expandingTildeInPath
+            let configPath = NSString(string: "~/.chap.json").expandingTildeInPath
             try data.write(to: URL(fileURLWithPath: configPath), options: .atomic)
             vm.sites = config.sites
             vm.runInBackground = config.runInBackground
@@ -359,7 +359,7 @@ struct SettingsView: View {
         do {
             let data = try Data(contentsOf: url)
             let config = try JSONDecoder().decode(Config.self, from: data)
-            let configPath = NSString(string: "~/.quickaccess.json").expandingTildeInPath
+            let configPath = NSString(string: "~/.chap.json").expandingTildeInPath
             try data.write(to: URL(fileURLWithPath: configPath), options: .atomic)
             vm.sites = config.sites
             vm.runInBackground = config.runInBackground

@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "5D1FAF7E4B9B9D461FB4F868"
-               BuildableName = "QuickAccess.app"
-               BlueprintName = "QuickAccess"
-               ReferencedContainer = "container:QuickAccess.xcodeproj">
+               BlueprintIdentifier = "4E7B313F375F30307D26E14C"
+               BuildableName = "Chap.app"
+               BlueprintName = "Chap"
+               ReferencedContainer = "container:Chap.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -29,10 +29,10 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "DE09EDBFC47C64AEA6877054"
-               BuildableName = "QuickAccessTests.xctest"
-               BlueprintName = "QuickAccessTests"
-               ReferencedContainer = "container:QuickAccess.xcodeproj">
+               BlueprintIdentifier = "000BD7306A8F8F696D8865EB"
+               BuildableName = "ChapTests.xctest"
+               BlueprintName = "ChapTests"
+               ReferencedContainer = "container:Chap.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -46,10 +46,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "5D1FAF7E4B9B9D461FB4F868"
-            BuildableName = "QuickAccess.app"
-            BlueprintName = "QuickAccess"
-            ReferencedContainer = "container:QuickAccess.xcodeproj">
+            BlueprintIdentifier = "4E7B313F375F30307D26E14C"
+            BuildableName = "Chap.app"
+            BlueprintName = "Chap"
+            ReferencedContainer = "container:Chap.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -58,10 +58,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "DE09EDBFC47C64AEA6877054"
-               BuildableName = "QuickAccessTests.xctest"
-               BlueprintName = "QuickAccessTests"
-               ReferencedContainer = "container:QuickAccess.xcodeproj">
+               BlueprintIdentifier = "000BD7306A8F8F696D8865EB"
+               BuildableName = "ChapTests.xctest"
+               BlueprintName = "ChapTests"
+               ReferencedContainer = "container:Chap.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -82,10 +82,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "5D1FAF7E4B9B9D461FB4F868"
-            BuildableName = "QuickAccess.app"
-            BlueprintName = "QuickAccess"
-            ReferencedContainer = "container:QuickAccess.xcodeproj">
+            BlueprintIdentifier = "4E7B313F375F30307D26E14C"
+            BuildableName = "Chap.app"
+            BlueprintName = "Chap"
+            ReferencedContainer = "container:Chap.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -101,10 +101,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "5D1FAF7E4B9B9D461FB4F868"
-            BuildableName = "QuickAccess.app"
-            BlueprintName = "QuickAccess"
-            ReferencedContainer = "container:QuickAccess.xcodeproj">
+            BlueprintIdentifier = "4E7B313F375F30307D26E14C"
+            BuildableName = "Chap.app"
+            BlueprintName = "Chap"
+            ReferencedContainer = "container:Chap.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

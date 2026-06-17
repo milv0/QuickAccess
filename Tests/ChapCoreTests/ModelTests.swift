@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import QuickAccess
+@testable import Chap
 
 @Suite("Site Model")
 struct SiteModelTests {
