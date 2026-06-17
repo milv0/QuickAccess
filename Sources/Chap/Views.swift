@@ -126,6 +126,7 @@ struct SettingsView: View {
                     }
                     .onMove { from, to in
                         vm.sites.move(fromOffsets: from, toOffset: to)
+                        save()
                     }
                 }
                 .listStyle(.bordered)
@@ -295,6 +296,7 @@ struct SettingsView: View {
                 name: "New Site", url: "https://", width: Defaults.defaultWidth,
                 height: Defaults.defaultHeight, x: Defaults.defaultX, y: Defaults.defaultY))
         selectedIndex = vm.sites.count - 1
+        isEditing = true
     }
 
     private func removeSite() {
@@ -307,12 +309,14 @@ struct SettingsView: View {
         guard let idx = selectedIndex, idx > 0 else { return }
         vm.sites.swapAt(idx, idx - 1)
         selectedIndex = idx - 1
+        save()
     }
 
     private func moveSiteDown() {
         guard let idx = selectedIndex, idx < vm.sites.count - 1 else { return }
         vm.sites.swapAt(idx, idx + 1)
         selectedIndex = idx + 1
+        save()
     }
 
     private func sidebarIcon(for site: Site) -> String {

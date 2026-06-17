@@ -289,6 +289,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             let encoder = JSONEncoder()
             encoder.outputFormatting = .prettyPrinted
             if let data = try? encoder.encode(self.config) {
+                // 저장 전 백업
+                let bakPath = self.configPath + ".bak"
+                try? FileManager.default.removeItem(atPath: bakPath)
+                try? FileManager.default.copyItem(atPath: self.configPath, toPath: bakPath)
                 try? data.write(to: URL(fileURLWithPath: self.configPath), options: .atomic)
             }
             DispatchQueue.main.async { self.buildMenu() }
