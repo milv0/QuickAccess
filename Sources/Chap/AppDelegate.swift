@@ -49,6 +49,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private var eventTap: CFMachPort?
     private var activationObserver: NSObjectProtocol?
+    private var tapRetryCount = 0
 
     private func registerGlobalHotkeys() {
         let mask: CGEventMask = (1 << CGEventType.keyDown.rawValue)
@@ -112,13 +113,25 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 userInfo: Unmanaged.passUnretained(self).toOpaque()
             )
         else {
-            NSLog("[Chap] Failed to create CGEvent tap — waiting for Accessibility permission")
-            observeActivationForAccessibility()
+            NSLog("[Chap] Failed to create CGEvent tap — check Accessibility permission")
+            updateStatusIcon(accessible: false)
+            tapRetryCount += 1
+            if tapRetryCount <= 5 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                    if self?.eventTap == nil {
+                        self?.registerGlobalHotkeys()
+                    }
+                }
+            } else {
+                observeActivationForAccessibility()
+            }
             return
         }
 
         eventTap = tap
+        tapRetryCount = 0
         removeActivationObserver()
+        updateStatusIcon(accessible: true)
         let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
@@ -138,7 +151,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 app.bundleIdentifier == Bundle.main.bundleIdentifier
             else { return }
             if AXIsProcessTrusted() {
-                NSLog("[Chap] Accessibility granted — registering hotkeys")
+                NSLog("[Chap] Accessibility granted — attempting hotkey registration")
+                self.tapRetryCount = 0
                 self.registerGlobalHotkeys()
             }
         }
@@ -148,6 +162,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if let observer = activationObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
             activationObserver = nil
+        }
+    }
+
+    private func updateStatusIcon(accessible: Bool) {
+        DispatchQueue.main.async {
+            guard let button = self.statusItem.button else { return }
+            let iconName = accessible ? "bolt.fill" : "bolt.trianglebadge.exclamationmark"
+            button.image = NSImage(
+                systemSymbolName: iconName, accessibilityDescription: "Chap")
         }
     }
 
