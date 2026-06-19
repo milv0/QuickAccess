@@ -105,18 +105,6 @@ Stored at `~/.chap.json`:
 
 ## Development
 
-```bash
-# Open in Xcode (Cmd+R to run, Cmd+U to test)
-open Chap.xcodeproj
-
-# CLI build & test
-xcodebuild -scheme Chap -destination "platform=macOS" build
-xcodebuild -scheme Chap -destination "platform=macOS" test
-
-# Regenerate .xcodeproj after editing project.yml
-xcodegen generate
-```
-
 ### Project Structure
 
 ```
