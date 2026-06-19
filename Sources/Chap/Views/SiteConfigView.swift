@@ -189,8 +189,10 @@ struct SiteConfigView: View {
                     ),
                     placeholder: "~/Documents"
                 )
-                Button("Browse") { browseFolder() }
-                    .controlSize(.small)
+                Button(action: browseFolder) {
+                    Image(systemName: "folder.badge.plus")
+                        .font(.system(size: 12))
+                }
             }
             windowFields
         }
