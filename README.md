@@ -103,32 +103,6 @@ Stored at `~/.chap.json`:
 }
 ```
 
-## Development
-
-### Project Structure
-
-```
-Sources/
-├── Chap/                  App target
-│   ├── AppDelegate.swift    Lifecycle, menu, hotkeys, window management
-│   ├── Views/               SwiftUI settings UI, design system
-│   └── Launchers/           Chrome, App, Finder, Shell launch logic
-└── ChapCore/              Core logic (testable)
-    ├── Models.swift         Site, Config, Defaults
-    ├── Validation.swift     Domain regex, screen targeting, bounds calc
-    └── SettingsViewModel.swift
-Tests/
-└── ChapCoreTests/         23 tests (Swift Testing framework)
-```
-
-### Release
-
-GitHub Actions `workflow_dispatch` — not triggered on every commit:
-
-```
-GitHub Actions → Release → Run workflow → enter version (e.g. 2.3.0)
-```
-
 ## License
 
 MIT
