@@ -13,7 +13,7 @@ public func chromeBoundsString(x: Int, y: Int, width: Int, height: Int) -> Strin
     "\(x), \(y), \(x + width), \(y + height)"
 }
 
-public var builtInScreen: NSScreen {
+public var cursorScreen: NSScreen {
     let mouseLocation = NSEvent.mouseLocation
     return NSScreen.screens.first { NSMouseInRect(mouseLocation, $0.frame, false) }
         ?? NSScreen.main
@@ -26,7 +26,7 @@ public func targetScreen(for site: Site) -> NSScreen {
             ?? NSScreen.main
             ?? NSScreen.screens.first!
     }
-    return builtInScreen
+    return cursorScreen
 }
 
 /// Calculate AppleScript-compatible bounds (top-left origin) for centering a window on a given screen.

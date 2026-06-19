@@ -5,7 +5,7 @@ import SwiftUI
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var statusItem: NSStatusItem!
     var config: Config = Config(sites: [])
-    let configPath = NSString(string: "~/.chap.json").expandingTildeInPath
+    let configPath = Defaults.configPath
     var settingsWindow: NSWindow?
     var settingsVM: SettingsViewModel?
     let resizeQueue = DispatchQueue(label: "com.mingyupark.Chap.resize")
@@ -127,7 +127,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 DispatchQueue.main.async {
                     let alert = NSAlert()
                     alert.messageText = "Keyboard shortcuts unavailable"
-                    alert.informativeText = "Enable Chap in:\nSystem Settings → Privacy → Accessibility\n\nThen use Restart from the menubar."
+                    alert.informativeText =
+                        "Enable Chap in:\nSystem Settings → Privacy → Accessibility\n\nThen use Restart from the menubar."
                     alert.alertStyle = .informational
                     alert.runModal()
                 }
@@ -164,7 +165,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     /// 기존 ~/.quickaccess.json → ~/.chap.json 마이그레이션
     func migrateConfigIfNeeded() {
         let oldPath = NSString(string: "~/.quickaccess.json").expandingTildeInPath
-        if FileManager.default.fileExists(atPath: oldPath) && !FileManager.default.fileExists(atPath: configPath) {
+        if FileManager.default.fileExists(atPath: oldPath)
+            && !FileManager.default.fileExists(atPath: configPath)
+        {
             try? FileManager.default.moveItem(atPath: oldPath, toPath: configPath)
             NSLog("[Chap] Migrated config from ~/.quickaccess.json to ~/.chap.json")
         }
@@ -388,7 +391,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc func uninstallApp() {
         let alert = NSAlert()
         alert.messageText = "Uninstall Chap?"
-        alert.informativeText = "This will remove the app and settings.\n\nNote: Please manually remove Chap from\nSystem Settings → Privacy → Accessibility."
+        alert.informativeText =
+            "This will remove the app and settings.\n\nNote: Please manually remove Chap from\nSystem Settings → Privacy → Accessibility."
         alert.addButton(withTitle: "Uninstall")
         alert.addButton(withTitle: "Cancel")
         alert.alertStyle = .critical
