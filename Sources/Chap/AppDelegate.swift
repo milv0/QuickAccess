@@ -48,7 +48,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // MARK: - Global Hotkeys
 
     private var eventTap: CFMachPort?
-    private var tapRetryCount = 0
+    private var activationObserver: NSObjectProtocol?
 
     private func registerGlobalHotkeys() {
         let mask: CGEventMask = (1 << CGEventType.keyDown.rawValue)
@@ -80,10 +80,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                             }
                             appDelegate.statusItem.menu?.popUp(
                                 positioning: nil, at: .zero, in: button)
-                            // popUp은 메뉴가 닫힐 때까지 동기적으로 블록함
                             appDelegate.menuIsOpen = false
                         }
-                        return nil  // 이벤트 소비
+                        return nil
                     }
 
                     // ⌥1~9 — launch site
@@ -97,7 +96,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                         DispatchQueue.main.async {
                             appDelegate.launchSite(appDelegate.config.sites[index])
                         }
-                        return nil  // 이벤트 소비
+                        return nil
                     }
 
                     // ⌥, — open settings
@@ -105,41 +104,51 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                         DispatchQueue.main.async {
                             appDelegate.openSettings()
                         }
-                        return nil  // 이벤트 소비
+                        return nil
                     }
 
-                    return Unmanaged.passRetained(event)  // 다른 키는 통과
+                    return Unmanaged.passRetained(event)
                 },
                 userInfo: Unmanaged.passUnretained(self).toOpaque()
             )
         else {
-            NSLog("[Chap] Failed to create CGEvent tap — check Accessibility permission")
-            tapRetryCount += 1
-            if tapRetryCount <= 15 {
-                // 2초 간격, 최대 30초간 재시도
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-                    if self?.eventTap == nil {
-                        self?.registerGlobalHotkeys()
-                    }
-                }
-            } else {
-                // 30초 경과 — 안내 alert
-                DispatchQueue.main.async {
-                    let alert = NSAlert()
-                    alert.messageText = "Keyboard shortcuts unavailable"
-                    alert.informativeText =
-                        "Enable Chap in:\nSystem Settings → Privacy → Accessibility\n\nThen use Restart from the menubar."
-                    alert.alertStyle = .informational
-                    alert.runModal()
-                }
-            }
+            NSLog("[Chap] Failed to create CGEvent tap — waiting for Accessibility permission")
+            observeActivationForAccessibility()
             return
         }
 
         eventTap = tap
+        removeActivationObserver()
         let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
+        NSLog("[Chap] CGEvent tap registered successfully")
+    }
+
+    private func observeActivationForAccessibility() {
+        guard activationObserver == nil else { return }
+        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil, queue: .main
+        ) { [weak self] notification in
+            guard let self = self, self.eventTap == nil else { return }
+            guard
+                let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+                    as? NSRunningApplication,
+                app.bundleIdentifier == Bundle.main.bundleIdentifier
+            else { return }
+            if AXIsProcessTrusted() {
+                NSLog("[Chap] Accessibility granted — registering hotkeys")
+                self.registerGlobalHotkeys()
+            }
+        }
+    }
+
+    private func removeActivationObserver() {
+        if let observer = activationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+            activationObserver = nil
+        }
     }
 
     func showWelcomeWindow() {
