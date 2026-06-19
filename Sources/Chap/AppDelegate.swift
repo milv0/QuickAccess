@@ -48,6 +48,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // MARK: - Global Hotkeys
 
     private var eventTap: CFMachPort?
+    private var tapRetryCount = 0
 
     private func registerGlobalHotkeys() {
         let mask: CGEventMask = (1 << CGEventType.keyDown.rawValue)
@@ -113,10 +114,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             )
         else {
             NSLog("[Chap] Failed to create CGEvent tap — check Accessibility permission")
-            // 권한 획득 후 자동 재시도 (2초 간격)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-                if self?.eventTap == nil {
-                    self?.registerGlobalHotkeys()
+            tapRetryCount += 1
+            if tapRetryCount <= 15 {
+                // 2초 간격, 최대 30초간 재시도
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                    if self?.eventTap == nil {
+                        self?.registerGlobalHotkeys()
+                    }
+                }
+            } else {
+                // 30초 경과 — 안내 alert
+                DispatchQueue.main.async {
+                    let alert = NSAlert()
+                    alert.messageText = "Keyboard shortcuts unavailable"
+                    alert.informativeText = "Enable Chap in:\nSystem Settings → Privacy → Accessibility\n\nThen use Restart from the menubar."
+                    alert.alertStyle = .informational
+                    alert.runModal()
                 }
             }
             return
