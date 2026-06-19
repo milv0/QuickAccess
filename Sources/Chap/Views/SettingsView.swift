@@ -154,12 +154,14 @@ struct SettingsView: View {
                 .toggleStyle(.switch)
                 .controlSize(.small)
                 .font(DS.captionFont)
+                .onChange(of: vm.runInBackground) { _, _ in save() }
 
             Toggle("Ghost", isOn: $vm.showGhostWindow)
                 .toggleStyle(.switch)
                 .controlSize(.small)
                 .font(DS.captionFont)
                 .help("Show window position preview while launching")
+                .onChange(of: vm.showGhostWindow) { _, _ in save() }
 
             Spacer()
 
