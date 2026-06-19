@@ -414,10 +414,9 @@ struct SettingsView: View {
     }
 
     private func exportConfig() {
-        let configPath = NSString(string: "~/.chap.json").expandingTildeInPath
         let downloadsPath = NSString(string: "~/Downloads/chap.json").expandingTildeInPath
         try? FileManager.default.removeItem(atPath: downloadsPath)
-        try? FileManager.default.copyItem(atPath: configPath, toPath: downloadsPath)
+        try? FileManager.default.copyItem(atPath: Defaults.configPath, toPath: downloadsPath)
         NSLog("[Chap] Config exported to %@", downloadsPath)
         let alert = NSAlert()
         alert.messageText = "Export successful"
@@ -443,52 +442,33 @@ struct SettingsView: View {
         panel.allowedContentTypes = [.json]
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        do {
-            let data = try Data(contentsOf: url)
-            let config = try JSONDecoder().decode(Config.self, from: data)
-            let configPath = NSString(string: "~/.chap.json").expandingTildeInPath
-            try data.write(to: URL(fileURLWithPath: configPath), options: .atomic)
-            vm.sites = config.sites
-            vm.runInBackground = config.runInBackground
-            vm.onReload?()
-        } catch {
-            let alert = NSAlert()
-            alert.messageText = "Failed to import config."
-            alert.informativeText = error.localizedDescription
-            alert.alertStyle = .warning
-            alert.runModal()
+        guard let data = try? Data(contentsOf: url) else {
+            showImportError("Could not read file.")
+            return
         }
+        applyConfigData(data)
     }
 
     private func applyJSONString(_ jsonString: String) {
         guard let data = jsonString.data(using: .utf8) else { return }
-        do {
-            let config = try JSONDecoder().decode(Config.self, from: data)
-            let configPath = NSString(string: "~/.chap.json").expandingTildeInPath
-            try data.write(to: URL(fileURLWithPath: configPath), options: .atomic)
-            vm.sites = config.sites
-            vm.runInBackground = config.runInBackground
-            vm.onReload?()
-            let alert = NSAlert()
-            alert.messageText = "Import successful"
-            alert.informativeText = "\(config.sites.count) site(s) loaded."
-            alert.alertStyle = .informational
-            alert.runModal()
-        } catch {
-            let alert = NSAlert()
-            alert.messageText = "Invalid JSON."
-            alert.informativeText = error.localizedDescription
-            alert.alertStyle = .warning
-            alert.runModal()
-        }
+        applyConfigData(data)
     }
 
     private func importFromURL(_ url: URL) {
+        guard let data = try? Data(contentsOf: url) else {
+            showImportError("Could not read file.")
+            return
+        }
+        applyConfigData(data)
+    }
+
+    private func applyConfigData(_ data: Data) {
         do {
-            let data = try Data(contentsOf: url)
             let config = try JSONDecoder().decode(Config.self, from: data)
-            let configPath = NSString(string: "~/.chap.json").expandingTildeInPath
-            try data.write(to: URL(fileURLWithPath: configPath), options: .atomic)
+            let bakPath = Defaults.configPath + ".bak"
+            try? FileManager.default.removeItem(atPath: bakPath)
+            try? FileManager.default.copyItem(atPath: Defaults.configPath, toPath: bakPath)
+            try data.write(to: URL(fileURLWithPath: Defaults.configPath), options: .atomic)
             vm.sites = config.sites
             vm.runInBackground = config.runInBackground
             vm.onReload?()
@@ -498,11 +478,15 @@ struct SettingsView: View {
             alert.alertStyle = .informational
             alert.runModal()
         } catch {
-            let alert = NSAlert()
-            alert.messageText = "Failed to import config."
-            alert.informativeText = error.localizedDescription
-            alert.alertStyle = .warning
-            alert.runModal()
+            showImportError(error.localizedDescription)
         }
+    }
+
+    private func showImportError(_ detail: String) {
+        let alert = NSAlert()
+        alert.messageText = "Failed to import config."
+        alert.informativeText = detail
+        alert.alertStyle = .warning
+        alert.runModal()
     }
 }

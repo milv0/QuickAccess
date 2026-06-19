@@ -98,7 +98,10 @@ enum AppLauncher {
             guard canResize else { return }
 
             // 점진적 딜레이로 리사이즈 시도
-            LauncherUtils.retryResize(script: appleScript, delays: delays, queue: resizeQueue, label: site.name, type: "app", appState: appRunning ? "running" : "cold", windowCount: 0, display: screen.localizedName, size: "\(site.width)x\(site.height)")
+            LauncherUtils.retryResize(
+                script: appleScript, delays: delays, queue: resizeQueue, label: site.name,
+                type: "app", appState: appRunning ? "running" : "cold", windowCount: 0,
+                display: screen.localizedName, size: "\(site.width)x\(site.height)")
         }
     }
 
@@ -112,7 +115,7 @@ enum AppLauncher {
         if trusted { return true }
         if !accessibilityPromptShown {
             accessibilityPromptShown = true
-            let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): true] as CFDictionary
+            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
             AXIsProcessTrustedWithOptions(options)
         }
         return false

@@ -1,12 +1,12 @@
 import Foundation
 
 /// 리사이즈 결과를 CSV 파일로 자동 수집하는 로거
-/// 저장 위치: ~/.chap/logs/resize_YYYY-MM-DD.csv
+/// 저장 위치: <project>/logs/resize_YYYY-MM-DD.csv
 enum ResizeLogger {
     private static let logDir: String = {
         let sourceFile = #file
-        let componets = sourceFile.components(separatedBy: "/Sources/")
-        return (componets.first ?? NSString(string: "~/.chap").expandingTildeInPath) + "/logs"
+        let components = sourceFile.components(separatedBy: "/Sources/")
+        return (components.first ?? ".") + "/logs"
     }()
 
     /// 리사이즈 결과 기록
@@ -21,23 +21,31 @@ enum ResizeLogger {
     ///   - windowCount: 해당 앱의 윈도우 수
     ///   - display: 대상 디스플레이 이름
     ///   - size: 윈도우 크기 "WxH"
-    static func log(site: String, type: String, appState: String, attempt: Int, delay: Double, totalTime: Double, result: String, windowCount: Int = 0, display: String = "", size: String = "") {
+    static func log(
+        site: String, type: String, appState: String, attempt: Int, delay: Double,
+        totalTime: Double, result: String, windowCount: Int = 0, display: String = "",
+        size: String = ""
+    ) {
         // 로그 디렉토리 생성
         try? FileManager.default.createDirectory(atPath: logDir, withIntermediateDirectories: true)
 
         // 일별 파일명
-        let dateStr = ISO8601DateFormatter.string(from: Date(), timeZone: .current, formatOptions: [.withFullDate])
+        let dateStr = ISO8601DateFormatter.string(
+            from: Date(), timeZone: .current, formatOptions: [.withFullDate])
         let filePath = (logDir as NSString).appendingPathComponent("resize_\(dateStr).csv")
 
         // 헤더 (파일 없으면 추가)
         if !FileManager.default.fileExists(atPath: filePath) {
-            let header = "timestamp,site,type,app_state,attempt,delay,total_time,result,window_count,display,size\n"
+            let header =
+                "timestamp,site,type,app_state,attempt,delay,total_time,result,window_count,display,size\n"
             try? header.write(toFile: filePath, atomically: true, encoding: .utf8)
         }
 
         // CSV 행 추가
-        let timestamp = ISO8601DateFormatter.string(from: Date(), timeZone: .current, formatOptions: [.withInternetDateTime])
-        let row = "\(timestamp),\(site),\(type),\(appState),\(attempt),\(String(format: "%.2f", delay)),\(String(format: "%.2f", totalTime)),\(result),\(windowCount),\(display),\(size)\n"
+        let timestamp = ISO8601DateFormatter.string(
+            from: Date(), timeZone: .current, formatOptions: [.withInternetDateTime])
+        let row =
+            "\(timestamp),\(site),\(type),\(appState),\(attempt),\(String(format: "%.2f", delay)),\(String(format: "%.2f", totalTime)),\(result),\(windowCount),\(display),\(size)\n"
 
         if let handle = FileHandle(forWritingAtPath: filePath) {
             handle.seekToEndOfFile()

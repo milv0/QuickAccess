@@ -2,6 +2,7 @@ import Foundation
 
 public enum Defaults {
     public static let appVersion = "2.2.9"
+    public static let configPath = NSString(string: "~/.chap.json").expandingTildeInPath
     public static let defaultWidth = 800
     public static let defaultHeight = 600
     public static let defaultX = 100
@@ -33,9 +34,11 @@ public struct Site: Codable, Equatable {
     public var script: String?
     public var folderPath: String?
 
-    public init(name: String, url: String, width: Int, height: Int, x: Int, y: Int,
-                displayName: String? = nil, launchType: LaunchType = .url,
-                appPath: String? = nil, script: String? = nil, folderPath: String? = nil) {
+    public init(
+        name: String, url: String, width: Int, height: Int, x: Int, y: Int,
+        displayName: String? = nil, launchType: LaunchType = .url,
+        appPath: String? = nil, script: String? = nil, folderPath: String? = nil
+    ) {
         self.name = name
         self.url = url
         self.width = width
