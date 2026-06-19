@@ -154,6 +154,14 @@ struct SettingsView: View {
                 .toggleStyle(.switch)
                 .controlSize(.small)
                 .font(DS.captionFont)
+                .onChange(of: vm.runInBackground) { _, _ in save() }
+
+            Toggle("Ghost", isOn: $vm.showGhostWindow)
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .font(DS.captionFont)
+                .help("Show window position preview while launching")
+                .onChange(of: vm.showGhostWindow) { _, _ in save() }
 
             Spacer()
 
@@ -409,7 +417,7 @@ struct SettingsView: View {
     }
 
     private func save() {
-        vm.onSave?(vm.sites, vm.runInBackground)
+        vm.onSave?(vm.sites, vm.runInBackground, vm.showGhostWindow)
         vm.markSaved()
     }
 
@@ -471,6 +479,7 @@ struct SettingsView: View {
             try data.write(to: URL(fileURLWithPath: Defaults.configPath), options: .atomic)
             vm.sites = config.sites
             vm.runInBackground = config.runInBackground
+            vm.showGhostWindow = config.showGhostWindow
             vm.onReload?()
             let alert = NSAlert()
             alert.messageText = "Import successful"
