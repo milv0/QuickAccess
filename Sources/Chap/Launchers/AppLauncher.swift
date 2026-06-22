@@ -97,9 +97,13 @@ enum AppLauncher {
         pid: pid_t, position: CGPoint, size: CGSize, isRunning: Bool
     ) -> Bool {
         let app = AXUIElementCreateApplication(pid)
-        // 폴링: running이면 짧게, cold면 길게 대기
-        let maxAttempts = isRunning ? 20 : 50
+        let maxAttempts = isRunning ? 30 : 50
         let interval: useconds_t = isRunning ? 50_000 : 100_000  // 50ms / 100ms
+
+        // running 앱은 activate 후 포커스 전환 대기
+        if isRunning {
+            usleep(150_000)  // 150ms
+        }
 
         for _ in 0..<maxAttempts {
             var windowValue: AnyObject?
@@ -109,7 +113,9 @@ enum AppLauncher {
                 let win = window as! AXUIElement
                 setPosition(win, position)
                 setSize(win, size)
-                // position 재설정 (size 변경 시 macOS가 위치를 밀 수 있음)
+                // size 적용 확인 후 position 재설정
+                usleep(50_000)
+                setSize(win, size)
                 setPosition(win, position)
                 return true
             }
