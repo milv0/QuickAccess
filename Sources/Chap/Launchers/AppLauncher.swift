@@ -1,13 +1,10 @@
+import ApplicationServices
 import Cocoa
 
-/// macOS 앱을 실행하고 System Events AppleScript로 윈도우를 리사이즈하는 런처
+/// macOS 앱을 실행하고 Accessibility API로 윈도우를 리사이즈하는 런처
 enum AppLauncher {
     /// 앱을 실행하고 윈도우 크기/위치를 조정
-    /// - Parameters:
-    ///   - site: 실행할 사이트 정보 (앱 경로, 크기 등)
-    ///   - resizeQueue: 리사이즈 작업을 실행할 백그라운드 큐
     static func launch(_ site: Site, resizeQueue: DispatchQueue, onComplete: (() -> Void)? = nil) {
-        // 앱 경로 유효성 검증
         guard let path = site.appPath, !path.isEmpty else {
             LauncherUtils.showAlert(message: "No app path configured for \"\(site.name)\".")
             return
@@ -17,73 +14,34 @@ enum AppLauncher {
             return
         }
 
-        // Bundle에서 프로세스 이름 추출
-        // 예: "Visual Studio Code.app" → CFBundleName = "Code"
-        // .app 파일명과 실제 프로세스명이 다른 경우가 많아서 Info.plist에서 읽음
         let bundle = Bundle(path: path)
         let bundleId = bundle?.bundleIdentifier
-        let processName =
-            bundle?.object(forInfoDictionaryKey: "CFBundleName") as? String
-            ?? URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
 
-        // 대상 화면의 중앙 좌표 계산
         let screen = targetScreen(for: site)
         let bounds = centeredBounds(for: site, on: screen)
         let bw = site.width
         let bh = site.height
 
         NSLog(
-            "[AppLauncher] launch site=%@ path=%@ bundleId=%@ processName=%@",
-            site.name, path, bundleId ?? "nil", processName)
+            "[AppLauncher] launch site=%@ path=%@ bundleId=%@",
+            site.name, path, bundleId ?? "nil")
         NSLog(
             "[AppLauncher] target screen=%@ bounds={left:%d, top:%d, w:%d, h:%d}",
             screen.localizedName, bounds.left, bounds.top, bw, bh)
 
-        // 접근성 권한 확인 — 없으면 앱만 실행하고 리사이즈는 스킵
         let canResize = checkAccessibility()
         if !canResize {
             NSLog("[AppLauncher] Accessibility not granted — launching without resize")
         }
 
-        // AppleScript: 앱 활성화 명령 (bundle ID 우선, 없으면 프로세스명으로)
-        let activateClause: String
-        if let id = bundleId {
-            activateClause = "tell application id \"\(id)\" to activate"
-        } else {
-            activateClause = "tell application \"\(processName)\" to activate"
-        }
-
-        // AppleScript: 앱 활성화 → System Events로 윈도우 찾기 → 크기/위치 설정
-        // position을 두 번 설정하는 이유: size 변경 시 macOS가 position을 재조정할 수 있어서
-        let appleScript = """
-            \(activateClause)
-            delay 0.05
-            tell application "System Events"
-                tell process "\(processName)"
-                    repeat 30 times
-                        if (count of windows) > 0 then
-                            set position of front window to {\(bounds.left), \(bounds.top)}
-                            set size of front window to {\(bw), \(bh)}
-                            delay 0.05
-                            set position of front window to {\(bounds.left), \(bounds.top)}
-                            return
-                        end if
-                        delay 0.3
-                    end repeat
-                end tell
-            end tell
-            """
-
-        // NSWorkspace로 앱 실행 (활성화 모드)
-        // 앱이 이미 실행 중인지 여기서 확인 (콜백 안에서는 항상 true가 됨)
         let appRunning = NSWorkspace.shared.runningApplications.contains {
             $0.bundleIdentifier == bundleId
         }
-        let delays: [Double] = appRunning ? [0.2, 0.5, 0.8, 1.2, 2.0] : [1.0, 2.0, 3.5, 5.0]
 
         let appURL = URL(fileURLWithPath: path)
         let openConfig = NSWorkspace.OpenConfiguration()
         openConfig.activates = true
+        let startTime = CFAbsoluteTimeGetCurrent()
 
         NSWorkspace.shared.openApplication(at: appURL, configuration: openConfig) { app, error in
             if let error = error {
@@ -91,28 +49,91 @@ enum AppLauncher {
                 onComplete?()
                 return
             }
+            guard let app = app else {
+                onComplete?()
+                return
+            }
             NSLog(
                 "[AppLauncher] app opened pid=%d localizedName=%@",
-                app?.processIdentifier ?? -1, app?.localizedName ?? "?")
+                app.processIdentifier, app.localizedName ?? "?")
 
             guard canResize else {
                 onComplete?()
                 return
             }
 
-            LauncherUtils.retryResize(
-                script: appleScript, delays: delays, queue: resizeQueue, label: site.name,
-                type: "app", appState: appRunning ? "running" : "cold", windowCount: 0,
-                display: screen.localizedName, size: "\(site.width)x\(site.height)",
-                onComplete: onComplete)
+            let position = CGPoint(x: bounds.left, y: bounds.top)
+            let size = CGSize(width: bw, height: bh)
+
+            resizeQueue.async {
+                let success = axResize(
+                    pid: app.processIdentifier,
+                    position: position,
+                    size: size,
+                    isRunning: appRunning
+                )
+                let elapsed = CFAbsoluteTimeGetCurrent() - startTime
+                let result = success ? "success" : "failed"
+                NSLog(
+                    "[AppLauncher] AX resize %@ for %@ — total %.2fs",
+                    result, site.name, elapsed)
+                ResizeLogger.log(
+                    site: site.name, type: "app",
+                    appState: appRunning ? "running" : "cold",
+                    attempt: 1, delay: 0,
+                    totalTime: elapsed, result: result,
+                    windowCount: 0,
+                    display: screen.localizedName,
+                    size: "\(site.width)x\(site.height)")
+                onComplete?()
+            }
         }
     }
 
-    // MARK: - 접근성 권한
+    // MARK: - AX API Resize
+
+    /// AX API를 사용하여 윈도우 리사이즈. 윈도우가 뜰 때까지 폴링.
+    private static func axResize(
+        pid: pid_t, position: CGPoint, size: CGSize, isRunning: Bool
+    ) -> Bool {
+        let app = AXUIElementCreateApplication(pid)
+        // 폴링: running이면 짧게, cold면 길게 대기
+        let maxAttempts = isRunning ? 20 : 50
+        let interval: useconds_t = isRunning ? 50_000 : 100_000  // 50ms / 100ms
+
+        for _ in 0..<maxAttempts {
+            var windowValue: AnyObject?
+            let err = AXUIElementCopyAttributeValue(
+                app, kAXFocusedWindowAttribute as CFString, &windowValue)
+            if err == .success, let window = windowValue {
+                let win = window as! AXUIElement
+                setPosition(win, position)
+                setSize(win, size)
+                // position 재설정 (size 변경 시 macOS가 위치를 밀 수 있음)
+                setPosition(win, position)
+                return true
+            }
+            usleep(interval)
+        }
+        return false
+    }
+
+    private static func setPosition(_ window: AXUIElement, _ point: CGPoint) {
+        var p = point
+        guard let value = AXValueCreate(.cgPoint, &p) else { return }
+        AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, value)
+    }
+
+    private static func setSize(_ window: AXUIElement, _ size: CGSize) {
+        var s = size
+        guard let value = AXValueCreate(.cgSize, &s) else { return }
+        AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, value)
+    }
+
+    // MARK: - Accessibility 권한
 
     private static var accessibilityPromptShown = false
 
-    /// 접근성 권한 확인. 최초 1회만 시스템 다이얼로그로 권한 요청
     private static func checkAccessibility() -> Bool {
         let trusted = AXIsProcessTrusted()
         if trusted { return true }

@@ -14,11 +14,12 @@ Sources/
 │   ├── main.swift                 ← 엔트리포인트
 │   ├── Launchers/                 ← 런처별 실행 로직
 │   │   ├── ChromeLauncher.swift   ← URL (Chrome --app 모드)
-│   │   ├── AppLauncher.swift      ← App (System Events 리사이즈)
+│   │   ├── AppLauncher.swift      ← App (AX API 직접 리사이즈)
 │   │   ├── FinderLauncher.swift   ← Finder (단일 AppleScript)
 │   │   ├── ShellLauncher.swift    ← Shell (스크립트 실행)
 │   │   ├── LauncherUtils.swift    ← 공용 retryResize, showAlert
-│   │   └── ResizeLogger.swift     ← CSV 성능 로그
+│   │   ├── ResizeLogger.swift     ← CSV 성능 로그
+│   │   └── GhostWindow.swift      ← 리사이즈 미리보기 윈도우
 │   └── Views/                     ← UI
 │       ├── DesignSystem.swift     ← 색상, 폰트, 컴포넌트 스타일
 │       ├── Components.swift       ← 공용 뷰 (CardSection, InputField 등)
@@ -80,16 +81,50 @@ Runtime:
 ## 런처 타입별 동작
 
   URL:     Chrome --app 모드 실행 → osascript로 도메인 매칭 → bounds 설정
-  App:     NSWorkspace.openApplication → System Events로 position/size 설정
+  App:     NSWorkspace.openApplication → AX API로 position/size 직접 설정
   Finder:  단일 AppleScript로 열기+리사이즈 동시 (딜레이 없음)
   Shell:   Process로 스크립트 실행 (리사이즈 없음)
 
-리사이즈 딜레이:
-  URL (Chrome 실행 중):  0.5, 0.8, 1.2, 2.0초
-  URL (콜드 스타트):     1.0, 2.0, 3.5, 5.0초
-  App (실행 중):         0.2, 0.5, 0.8, 1.2, 2.0초
-  App (콜드 스타트):     1.0, 2.0, 3.5, 5.0초
-  Finder:               딜레이 없음
+리사이즈 전략:
+  URL (Chrome 실행 중):  osascript 점진적 재시도 (0.5, 0.8, 1.2, 2.0초)
+  URL (콜드 스타트):     osascript 점진적 재시도 (1.0, 2.0, 3.5, 5.0초)
+  App (실행 중):         AX API 폴링 50ms 간격 (최대 1초)
+  App (콜드 스타트):     AX API 폴링 100ms 간격 (최대 5초)
+  Finder:               딜레이 없음 (열기+리사이즈 단일 스크립트)
+
+
+## 사용 API / 프레임워크
+
+### ApplicationServices (Accessibility API)
+  용도: 앱 윈도우 리사이즈 (AppLauncher), 글로벌 핫키 권한 확인
+  - AXUIElementCreateApplication(pid)         앱의 AX 요소 참조 생성
+  - AXUIElementCopyAttributeValue             포커스 윈도우(kAXFocusedWindowAttribute) 획득
+  - AXUIElementSetAttributeValue              윈도우 position/size 설정
+  - AXValueCreate(.cgPoint / .cgSize)         좌표/크기 값 생성
+  - AXIsProcessTrusted()                      접근성 권한 확인
+  - AXIsProcessTrustedWithOptions()           접근성 권한 요청 다이얼로그
+
+### AppKit (NSWorkspace)
+  용도: 앱 실행, 실행 중 앱 감지
+  - NSWorkspace.shared.openApplication(at:configuration:)   앱 실행 (pid 콜백)
+  - NSWorkspace.shared.runningApplications                  실행 중 앱 목록 조회
+
+### CoreGraphics (CGEvent)
+  용도: 글로벌 키보드 단축키
+  - CGEvent.tapCreate()               이벤트 탭 생성 (키 입력 감시)
+  - CFMachPortCreateRunLoopSource()   런루프에 이벤트 소스 등록
+
+### AppleScript (osascript via Process)
+  용도: Chrome 윈도우 제어, Finder 윈도우 제어
+  - Chrome: "tell application Google Chrome" → bounds 설정
+  - Finder: "tell application Finder" → open + bounds 설정
+  ※ AppLauncher는 AppleScript 대신 AX API 직접 사용 (성능 최적화)
+
+### NSScreen
+  용도: 멀티 모니터 좌표 계산, 대상 화면 결정
+  - NSScreen.screens                  전체 디스플레이 목록
+  - NSScreen.localizedName            디스플레이 이름 매칭
+  - visibleFrame / frame              좌표 변환 (NSScreen ↔ AppleScript 좌표계)
 
 
 ## 권한 요구사항
