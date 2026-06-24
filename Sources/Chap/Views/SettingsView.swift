@@ -169,12 +169,12 @@ struct SettingsView: View {
 
     private var bottomBar: some View {
         HStack(spacing: DS.spacingSmall) {
-            Toggle("Guide", isOn: $vm.showGhostWindow)
+            Toggle("Guide Window", isOn: $vm.showGuideWindow)
                 .toggleStyle(.switch)
                 .controlSize(.small)
                 .font(DS.captionFont)
                 .help("Show window position guide while launching")
-                .onChange(of: vm.showGhostWindow) { _, _ in save() }
+                .onChange(of: vm.showGuideWindow) { _, _ in save() }
 
             Toggle("Login", isOn: $vm.launchAtLogin)
                 .toggleStyle(.switch)
@@ -451,7 +451,7 @@ struct SettingsView: View {
                 return
             }
         }
-        vm.onSave?(SettingsPayload(sites: vm.sites, runInBackground: vm.runInBackground, showGhostWindow: vm.showGhostWindow, launchAtLogin: vm.launchAtLogin))
+        vm.onSave?(SettingsPayload(sites: vm.sites, runInBackground: vm.runInBackground, showGuideWindow: vm.showGuideWindow, launchAtLogin: vm.launchAtLogin))
         vm.markSaved()
     }
 
@@ -513,7 +513,7 @@ struct SettingsView: View {
             try data.write(to: URL(fileURLWithPath: Defaults.configPath), options: .atomic)
             vm.sites = config.sites
             vm.runInBackground = config.runInBackground
-            vm.showGhostWindow = config.showGhostWindow
+            vm.showGuideWindow = config.showGuideWindow
             vm.launchAtLogin = config.launchAtLogin
             vm.onReload?()
             let alert = NSAlert()
