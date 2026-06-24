@@ -343,8 +343,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func launchSite(_ site: Site) {
-        let useGhost = config.showGhostWindow && site.launchType == .url
-        if useGhost {
+        let useGuide = config.showGuideWindow && site.launchType == .url
+        if useGuide {
             let screen = targetScreen(for: site)
             let bounds = centeredBounds(for: site, on: screen)
             GuideWindow.show(bounds: bounds)
@@ -353,7 +353,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         switch site.launchType {
         case .url:
             ChromeLauncher.launch(site, resizeQueue: resizeQueue) {
-                if useGhost { GuideWindow.dismiss() }
+                if useGuide { GuideWindow.dismiss() }
             }
         case .app:
             AppLauncher.launch(site, resizeQueue: resizeQueue)
@@ -396,11 +396,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         let vm = SettingsViewModel(
             sites: config.sites, runInBackground: config.runInBackground,
-            showGhostWindow: config.showGhostWindow, launchAtLogin: config.launchAtLogin)
+            showGuideWindow: config.showGuideWindow, launchAtLogin: config.launchAtLogin)
         vm.onSave = { [weak self] payload in
             guard let self = self else { return }
             self.config = Config(
-                runInBackground: payload.runInBackground, showGhostWindow: payload.showGhostWindow,
+                runInBackground: payload.runInBackground, showGuideWindow: payload.showGuideWindow,
                 launchAtLogin: payload.launchAtLogin, sites: payload.sites)
             let encoder = JSONEncoder()
             encoder.outputFormatting = .prettyPrinted
